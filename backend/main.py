@@ -22,6 +22,7 @@ try:
     from app.models.model import Model
     from app.models.file import File
     from app.models.ticket import Ticket, TicketMessage
+    from app.models.audit_log import AuditLog
     from sqlalchemy.orm import Session
     from sqlalchemy import select
     HAS_DATABASE = True
