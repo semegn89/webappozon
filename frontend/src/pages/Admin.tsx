@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { 
   Users, Package, Ticket, BarChart3, Plus, 
@@ -8,10 +8,14 @@ import {
 } from 'lucide-react'
 import { adminApi, modelsApi, ticketsApi } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
+import ModelForm from '../components/ModelForm'
 
 const Admin: React.FC = () => {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'dashboard' | 'models' | 'tickets' | 'users'>('dashboard')
+  const [isModelFormOpen, setIsModelFormOpen] = useState(false)
+  const [editingModel, setEditingModel] = useState<any>(null)
 
   // Получаем статистику
   const { isLoading: statsLoading } = useQuery({
@@ -40,12 +44,43 @@ const Admin: React.FC = () => {
     enabled: activeTab === 'users'
   })
 
+  // Мутация для удаления модели
+  const deleteModelMutation = useMutation({
+    mutationFn: modelsApi.deleteModel,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-models'] })
+      queryClient.invalidateQueries({ queryKey: ['models'] })
+    }
+  })
+
   const tabs = [
     { id: 'dashboard', label: 'Дашборд', icon: BarChart3, color: '#3b82f6' },
     { id: 'models', label: 'Модели', icon: Package, color: '#10b981' },
     { id: 'tickets', label: 'Тикеты', icon: Ticket, color: '#f59e0b' },
     { id: 'users', label: 'Пользователи', icon: Users, color: '#8b5cf6' }
   ]
+
+  // Функции для работы с моделями
+  const handleCreateModel = () => {
+    setEditingModel(null)
+    setIsModelFormOpen(true)
+  }
+
+  const handleEditModel = (model: any) => {
+    setEditingModel(model)
+    setIsModelFormOpen(true)
+  }
+
+  const handleDeleteModel = async (modelId: number) => {
+    if (window.confirm('Вы уверены, что хотите удалить эту модель?')) {
+      await deleteModelMutation.mutateAsync(modelId)
+    }
+  }
+
+  const handleModelFormSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-models'] })
+    queryClient.invalidateQueries({ queryKey: ['models'] })
+  }
 
   if (statsLoading) return <LoadingSpinner message="Загрузка админ-панели..." />
 
@@ -80,19 +115,28 @@ const Admin: React.FC = () => {
           </div>
           <div>
             <h3 className="model-title">{model.name}</h3>
-            <p className="model-category">{model.category}</p>
+            <p className="model-category">{model.category} {model.brand && `• ${model.brand}`}</p>
           </div>
         </div>
         <div className="model-actions">
-          <button className="action-btn edit-btn">
+          <button 
+            className="action-btn edit-btn"
+            onClick={() => handleEditModel(model)}
+            title="Редактировать"
+          >
             <Edit size={16} />
           </button>
-          <button className="action-btn delete-btn">
+          <button 
+            className="action-btn delete-btn"
+            onClick={() => handleDeleteModel(model.id)}
+            title="Удалить"
+            disabled={deleteModelMutation.isPending}
+          >
             <Trash2 size={16} />
           </button>
         </div>
       </div>
-      <p className="model-description">{model.description}</p>
+      <p className="model-description">{model.description || 'Описание не указано'}</p>
       <div className="model-footer">
         <div className="model-stats">
           <div className="model-stat">
@@ -104,7 +148,9 @@ const Admin: React.FC = () => {
             <span>0 загрузок</span>
           </div>
         </div>
-        <span className="status-badge status-active">Активна</span>
+        <span className={`status-badge ${model.is_active ? 'status-active' : 'status-blocked'}`}>
+          {model.is_active ? 'Активна' : 'Неактивна'}
+        </span>
       </div>
     </div>
   )
@@ -255,7 +301,7 @@ const Admin: React.FC = () => {
             <div className="quick-actions-section">
               <h2 className="section-title">Быстрые действия</h2>
               <div className="quick-actions-grid">
-                <button className="quick-action-btn">
+                <button className="quick-action-btn" onClick={handleCreateModel}>
                   <Plus size={24} color="white" />
                   <div>
                     <h3>Добавить модель</h3>
@@ -319,7 +365,7 @@ const Admin: React.FC = () => {
           <div className="models-content">
             <div className="content-header">
               <h2 className="section-title">Управление моделями</h2>
-              <button className="admin-button">
+              <button className="admin-button" onClick={handleCreateModel}>
                 <Plus size={20} />
                 Добавить модель
               </button>
@@ -386,6 +432,14 @@ const Admin: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Модальное окно для создания/редактирования модели */}
+      <ModelForm
+        isOpen={isModelFormOpen}
+        onClose={() => setIsModelFormOpen(false)}
+        onSuccess={handleModelFormSuccess}
+        model={editingModel}
+      />
     </div>
   )
 }

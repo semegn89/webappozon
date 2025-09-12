@@ -335,6 +335,93 @@ async def get_model(model_id: int):
         print(f"⚠️ Error getting model: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get model: {str(e)}")
 
+@app.put("/api/v1/models/{model_id}")
+async def update_model(model_id: int, model_data: dict):
+    """Обновить модель"""
+    if not db_pool:
+        raise HTTPException(status_code=503, detail="Database not available")
+    
+    try:
+        async with db_pool.acquire() as conn:
+            # Проверяем существование модели
+            existing = await conn.fetchrow("SELECT id FROM models WHERE id = $1", model_id)
+            if not existing:
+                raise HTTPException(status_code=404, detail="Model not found")
+            
+            # Обновляем модель
+            row = await conn.fetchrow("""
+                UPDATE models 
+                SET name = COALESCE($2, name),
+                    code = COALESCE($3, code),
+                    brand = COALESCE($4, brand),
+                    category = COALESCE($5, category),
+                    year_from = COALESCE($6, year_from),
+                    year_to = COALESCE($7, year_to),
+                    description = COALESCE($8, description),
+                    image_url = COALESCE($9, image_url),
+                    is_active = COALESCE($10, is_active),
+                    updated_at = NOW()
+                WHERE id = $1
+                RETURNING id, name, code, brand, category, year_from, year_to, 
+                         description, image_url, is_active, created_at, updated_at
+            """, 
+                model_id,
+                model_data.get("name"),
+                model_data.get("code"),
+                model_data.get("brand"),
+                model_data.get("category"),
+                model_data.get("year_from"),
+                model_data.get("year_to"),
+                model_data.get("description"),
+                model_data.get("image_url"),
+                model_data.get("is_active")
+            )
+            
+            return {
+                "id": row["id"],
+                "name": row["name"],
+                "code": row["code"],
+                "brand": row["brand"],
+                "category": row["category"],
+                "year_from": row["year_from"],
+                "year_to": row["year_to"],
+                "description": row["description"],
+                "image_url": row["image_url"],
+                "is_active": row["is_active"],
+                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+                "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"⚠️ Error updating model: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update model: {str(e)}")
+
+@app.delete("/api/v1/models/{model_id}")
+async def delete_model(model_id: int):
+    """Удалить модель"""
+    if not db_pool:
+        raise HTTPException(status_code=503, detail="Database not available")
+    
+    try:
+        async with db_pool.acquire() as conn:
+            # Проверяем существование модели
+            existing = await conn.fetchrow("SELECT id FROM models WHERE id = $1", model_id)
+            if not existing:
+                raise HTTPException(status_code=404, detail="Model not found")
+            
+            # Удаляем модель
+            await conn.execute("DELETE FROM models WHERE id = $1", model_id)
+            
+            return {"message": "Model deleted successfully"}
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"⚠️ Error deleting model: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete model: {str(e)}")
+
 # ===== TICKETS ENDPOINTS =====
 
 @app.get("/api/v1/tickets")
