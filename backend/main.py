@@ -8,6 +8,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy.ext.asyncio import AsyncSession
 import os
 from contextlib import asynccontextmanager
 
@@ -24,7 +25,7 @@ try:
     from app.models.ticket import Ticket, TicketMessage
     from app.models.audit_log import AuditLog
     from sqlalchemy.orm import Session
-    from sqlalchemy import select
+    from sqlalchemy import select, text
     HAS_DATABASE = True
     print("✅ Database modules imported successfully")
 except ImportError as e:
@@ -49,9 +50,16 @@ async def lifespan(app: FastAPI):
     if HAS_DATABASE and engine is not None:
         try:
             # Создание таблиц БД
+            print("🔍 Creating database tables...")
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
             print("✅ Database tables created")
+            
+            # Проверяем, какие таблицы созданы
+            async with engine.begin() as conn:
+                result = await conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"))
+                tables = result.fetchall()
+                print(f"📊 Created tables: {[table[0] for table in tables]}")
             
             # Добавляем тестовые данные если таблицы пустые
             try:
@@ -208,7 +216,7 @@ async def get_current_user():
 # ===== MODELS ENDPOINTS =====
 
 @app.get("/api/v1/models")
-async def get_models():
+async def get_models(db: AsyncSession = Depends(get_db)):
     """Получить список моделей"""
     if not HAS_DATABASE:
         # Mock данные если база недоступна
@@ -226,14 +234,8 @@ async def get_models():
         }
     
     try:
-        # Используем dependency для получения сессии
-        async def get_models_from_db():
-            async with AsyncSessionLocal() as session:
-                result = await session.execute(select(Model).where(Model.is_active == True))
-                models = result.scalars().all()
-                return models
-        
-        models = await get_models_from_db()
+        result = await db.execute(select(Model).where(Model.is_active == True))
+        models = result.scalars().all()
         
         return {
             "models": [
