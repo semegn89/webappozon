@@ -11,16 +11,5 @@
       "src": "/(.*)",
       "dest": "main.py"
     }
-  ],
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "TELEGRAM_BOT_TOKEN": "@telegram_bot_token",
-    "TELEGRAM_BOT_USERNAME": "@telegram_bot_username",
-    "TELEGRAM_WEBAPP_URL": "https://gakshop.com",
-    "SECRET_KEY": "@secret_key",
-    "JWT_SECRET_KEY": "@jwt_secret_key",
-    "ADMIN_USER_IDS": "@admin_user_ids",
-    "DEBUG": "false",
-    "ENVIRONMENT": "production"
-  }
+  ]
 }

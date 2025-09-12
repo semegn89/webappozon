@@ -69,7 +69,7 @@ app.add_middleware(
 if not settings.DEBUG:
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=["yourdomain.com", "*.yourdomain.com"]
+        allowed_hosts=["gakshop.com", "*.gakshop.com", "*.vercel.app"]
     )
 
 # Статические файлы
