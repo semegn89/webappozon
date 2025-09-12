@@ -237,7 +237,7 @@ const Admin: React.FC = () => {
             
             {usersData?.items && usersData.items.length > 0 ? (
               <div className="list">
-                {usersData.items.map((user) => (
+                {usersData.items.map((user: any) => (
                   <div key={user.id} className="list-item">
                     <div className="list-item-header">
                       <div>

@@ -99,7 +99,7 @@ const Home: React.FC = () => {
             </button>
           </div>
           <div className="list">
-            {recentModels.map((model) => (
+            {recentModels.map((model: any) => (
               <div 
                 key={model.id} 
                 className="list-item"
@@ -137,7 +137,7 @@ const Home: React.FC = () => {
             </button>
           </div>
           <div className="list">
-            {userTickets.map((ticket) => (
+            {userTickets.map((ticket: any) => (
               <div 
                 key={ticket.id} 
                 className="list-item"

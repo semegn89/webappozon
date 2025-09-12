@@ -166,7 +166,7 @@ export const filesApi = {
   
   uploadFile: async (modelId: number, file: File, title: string, version?: string) => {
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', file as any)
     formData.append('title', title)
     if (version) formData.append('version', version)
     

@@ -186,7 +186,7 @@ const ModelDetail: React.FC = () => {
               </div>
             ) : (
               <div className="list">
-                {files.map((file) => (
+                {files.map((file: any) => (
                   <div key={file.id} className="list-item">
                     <div className="list-item-header">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
