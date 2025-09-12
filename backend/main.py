@@ -38,6 +38,66 @@ except Exception as e:
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
 
+# Функция для ручного создания таблиц
+async def create_tables_manually(engine):
+    """Создание таблиц вручную"""
+    try:
+        async with engine.begin() as conn:
+            # Создаем таблицу users
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    telegram_user_id INTEGER UNIQUE NOT NULL,
+                    username VARCHAR(255),
+                    first_name VARCHAR(255),
+                    last_name VARCHAR(255),
+                    language_code VARCHAR(10) DEFAULT 'ru',
+                    role VARCHAR(20) DEFAULT 'user' NOT NULL,
+                    is_blocked BOOLEAN DEFAULT FALSE NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    updated_at TIMESTAMP WITH TIME ZONE
+                )
+            """))
+            
+            # Создаем таблицу models
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS models (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    code VARCHAR(100) UNIQUE NOT NULL,
+                    brand VARCHAR(100),
+                    category VARCHAR(100),
+                    year_from INTEGER,
+                    year_to INTEGER,
+                    description TEXT,
+                    image_url VARCHAR(500),
+                    is_active BOOLEAN DEFAULT TRUE NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    updated_at TIMESTAMP WITH TIME ZONE
+                )
+            """))
+            
+            # Создаем таблицу tickets
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS tickets (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id),
+                    model_id INTEGER REFERENCES models(id),
+                    subject VARCHAR(255) NOT NULL,
+                    description TEXT NOT NULL,
+                    priority VARCHAR(20) DEFAULT 'normal' NOT NULL,
+                    status VARCHAR(20) DEFAULT 'open' NOT NULL,
+                    assignee_id INTEGER REFERENCES users(id),
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    updated_at TIMESTAMP WITH TIME ZONE,
+                    closed_at TIMESTAMP WITH TIME ZONE
+                )
+            """))
+            
+            print("✅ Tables created manually")
+    except Exception as e:
+        print(f"⚠️ Error creating tables manually: {e}")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -51,15 +111,21 @@ async def lifespan(app: FastAPI):
         try:
             # Создание таблиц БД
             print("🔍 Creating database tables...")
-            async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
-            print("✅ Database tables created")
-            
-            # Проверяем, какие таблицы созданы
-            async with engine.begin() as conn:
-                result = await conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"))
-                tables = result.fetchall()
-                print(f"📊 Created tables: {[table[0] for table in tables]}")
+            try:
+                async with engine.begin() as conn:
+                    await conn.run_sync(Base.metadata.create_all)
+                print("✅ Database tables created")
+                
+                # Проверяем, какие таблицы созданы
+                async with engine.begin() as conn:
+                    result = await conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"))
+                    tables = result.fetchall()
+                    print(f"📊 Created tables: {[table[0] for table in tables]}")
+            except Exception as e:
+                print(f"⚠️ Error creating tables: {e}")
+                # Попробуем создать таблицы вручную
+                print("🔧 Trying to create tables manually...")
+                await create_tables_manually(engine)
             
             # Добавляем тестовые данные если таблицы пустые
             try:
