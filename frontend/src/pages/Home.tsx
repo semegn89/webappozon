@@ -47,6 +47,14 @@ const Home: React.FC = () => {
       action: () => navigate('/tickets/create'),
       gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
       iconBg: '#4facfe'
+    },
+    {
+      title: 'Админ панель',
+      description: 'Управление системой',
+      icon: Star,
+      action: () => navigate('/admin'),
+      gradient: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)',
+      iconBg: '#ff6b6b'
     }
   ]
 
