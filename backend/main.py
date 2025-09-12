@@ -50,14 +50,16 @@ async def get_db_pool():
 
 async def get_db_connection():
     """Получить соединение с базой данных"""
-    pool = await get_db_pool()
-    if pool is None:
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url or database_url.startswith("postgresql://user:password"):
         return None
     
     try:
-        return await pool.acquire()
+        # Убираем channel_binding=require и заменяем sslmode=require на sslmode=prefer
+        clean_url = database_url.replace("&channel_binding=require", "").replace("sslmode=require", "sslmode=prefer")
+        return await asyncpg.connect(clean_url)
     except Exception as e:
-        print(f"⚠️ Error acquiring connection: {e}")
+        print(f"⚠️ Error creating connection: {e}")
         return None
 
 @asynccontextmanager
