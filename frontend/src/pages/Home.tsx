@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Package, Ticket, FileText, Search } from 'lucide-react'
+import { Package, Ticket, FileText, Search, Star, TrendingUp, Users, Clock } from 'lucide-react'
 import { modelsApi, ticketsApi } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -29,58 +29,105 @@ const Home: React.FC = () => {
       description: 'Просмотр и поиск моделей',
       icon: Package,
       action: () => navigate('/models'),
-      color: '#2481cc'
+      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      iconBg: '#667eea'
     },
     {
       title: 'Мои тикеты',
       description: 'Управление тикетами поддержки',
       icon: Ticket,
       action: () => navigate('/tickets'),
-      color: '#f57c00'
+      gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      iconBg: '#f093fb'
     },
     {
       title: 'Создать тикет',
       description: 'Новый запрос в поддержку',
       icon: FileText,
       action: () => navigate('/tickets/create'),
-      color: '#388e3c'
+      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      iconBg: '#4facfe'
+    }
+  ]
+
+  const stats = [
+    {
+      title: 'Всего моделей',
+      value: recentModels?.length || 0,
+      icon: Package,
+      color: '#667eea',
+      change: '+12%'
+    },
+    {
+      title: 'Активные тикеты',
+      value: userTickets?.filter((t: any) => t.status === 'open').length || 0,
+      icon: Ticket,
+      color: '#f093fb',
+      change: '+5%'
+    },
+    {
+      title: 'Решено сегодня',
+      value: userTickets?.filter((t: any) => t.status === 'resolved').length || 0,
+      icon: Star,
+      color: '#4facfe',
+      change: '+8%'
     }
   ]
 
   return (
-    <div className="container">
-      {/* Приветствие */}
-      <div className="card">
-        <h1>Добро пожаловать, {user?.first_name || 'Пользователь'}!</h1>
-        <p>Выберите действие или найдите нужную модель в каталоге.</p>
+    <div className="home-container">
+      {/* Hero Section */}
+      <div className="hero-section">
+        <div className="hero-content">
+          <h1 className="hero-title">
+            Добро пожаловать, <span className="gradient-text">{user?.first_name || 'Пользователь'}</span>!
+          </h1>
+          <p className="hero-subtitle">
+            Добро пожаловать в ваш персональный кабинет. Здесь вы можете найти модели, 
+            управлять тикетами поддержки и получить всю необходимую помощь.
+          </p>
+        </div>
+        <div className="hero-stats">
+          {stats.map((stat, index) => {
+            const Icon = stat.icon
+            return (
+              <div key={index} className="stat-item animate-fadeInUp" style={{ animationDelay: `${index * 0.1}s` }}>
+                <div className="stat-icon" style={{ backgroundColor: stat.color }}>
+                  <Icon size={20} color="white" />
+                </div>
+                <div className="stat-content">
+                  <div className="stat-value">{stat.value}</div>
+                  <div className="stat-title">{stat.title}</div>
+                  <div className="stat-change">{stat.change}</div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
-      {/* Быстрые действия */}
-      <div className="card">
-        <h2>Быстрые действия</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginTop: '16px' }}>
+      {/* Quick Actions */}
+      <div className="section">
+        <h2 className="section-title">Быстрые действия</h2>
+        <div className="actions-grid">
           {quickActions.map((action, index) => {
             const Icon = action.icon
             return (
-              <button
+              <div
                 key={index}
-                className="btn btn-secondary"
+                className="action-card animate-fadeInUp"
+                style={{ animationDelay: `${index * 0.1}s` }}
                 onClick={action.action}
-                style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  gap: '8px',
-                  padding: '16px',
-                  textAlign: 'center'
-                }}
               >
-                <Icon size={24} color={action.color} />
-                <div>
-                  <div style={{ fontWeight: '600', marginBottom: '4px' }}>{action.title}</div>
-                  <div style={{ fontSize: '12px', opacity: 0.8 }}>{action.description}</div>
+                <div className="action-icon" style={{ background: action.gradient }}>
+                  <Icon size={28} color="white" />
                 </div>
-              </button>
+                <div className="action-content">
+                  <h3 className="action-title">{action.title}</h3>
+                  <p className="action-description">{action.description}</p>
+                </div>
+                <div className="action-arrow">→</div>
+              </div>
             )
           })}
         </div>
@@ -164,23 +211,38 @@ const Home: React.FC = () => {
       )}
 
       {/* Поиск */}
-      <div className="card">
-        <h2>Поиск</h2>
-        <div className="search">
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Поиск моделей..."
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                const query = (e.target as HTMLInputElement).value
-                if (query.trim()) {
-                  navigate(`/models?q=${encodeURIComponent(query.trim())}`)
+      <div className="search-section">
+        <div className="search-container">
+          <h2 className="search-title">Найти модель</h2>
+          <p className="search-subtitle">
+            Введите название модели, код или бренд для быстрого поиска
+          </p>
+          <div className="search-input-container">
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Например: iPhone 15, Samsung Galaxy..."
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  const query = (e.target as HTMLInputElement).value
+                  if (query.trim()) {
+                    navigate(`/models?q=${encodeURIComponent(query.trim())}`)
+                  }
                 }
-              }
-            }}
-          />
-          <Search className="search-icon" size={20} />
+              }}
+            />
+            <button 
+              className="search-button"
+              onClick={(e) => {
+                const input = (e.target as HTMLElement).parentElement?.querySelector('input') as HTMLInputElement
+                if (input?.value.trim()) {
+                  navigate(`/models?q=${encodeURIComponent(input.value.trim())}`)
+                }
+              }}
+            >
+              <Search size={20} color="white" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
