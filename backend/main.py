@@ -371,7 +371,16 @@ async def create_model(model_data: dict):
     
     try:
         # Генерируем уникальный код
-        code = model_data.get("code", f"MODEL_{int(asyncio.get_event_loop().time())}")
+        code = model_data.get("code")
+        if not code or code.strip() == "":
+            import time
+            code = f"MODEL_{int(time.time() * 1000)}"
+        
+        # Проверяем уникальность кода
+        existing = await conn.fetchval("SELECT id FROM models WHERE code = $1", code)
+        if existing:
+            import time
+            code = f"MODEL_{int(time.time() * 1000)}_{existing}"
         
         row = await conn.fetchrow("""
             INSERT INTO models (name, code, brand, category, description, is_active)
