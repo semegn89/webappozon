@@ -365,41 +365,44 @@ async def get_models():
 @app.post("/api/v1/models")
 async def create_model(model_data: dict):
     """Создать новую модель"""
-    if not db_pool:
+    conn = await get_db_connection()
+    if not conn:
         raise HTTPException(status_code=503, detail="Database not available")
     
     try:
-        async with db_pool.acquire() as conn:
-            # Генерируем уникальный код
-            code = model_data.get("code", f"MODEL_{int(asyncio.get_event_loop().time())}")
-            
-            row = await conn.fetchrow("""
-                INSERT INTO models (name, code, brand, category, description, is_active)
-                VALUES ($1, $2, $3, $4, $5, $6)
-                RETURNING id, name, code, brand, category, description, created_at, updated_at
-            """, 
-                model_data.get("name", "New Model"),
-                code,
-                model_data.get("brand"),
-                model_data.get("category", "general"),
-                model_data.get("description", ""),
-                True
-            )
-            
-            return {
-                "id": row["id"],
-                "name": row["name"],
-                "code": row["code"],
-                "brand": row["brand"],
-                "category": row["category"],
-                "description": row["description"],
-                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
-                "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None
-            }
-            
+        # Генерируем уникальный код
+        code = model_data.get("code", f"MODEL_{int(asyncio.get_event_loop().time())}")
+        
+        row = await conn.fetchrow("""
+            INSERT INTO models (name, code, brand, category, description, is_active)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, name, code, brand, category, description, created_at, updated_at
+        """, 
+            model_data.get("name", "New Model"),
+            code,
+            model_data.get("brand"),
+            model_data.get("category", "general"),
+            model_data.get("description", ""),
+            True
+        )
+        
+        return {
+            "id": row["id"],
+            "name": row["name"],
+            "code": row["code"],
+            "brand": row["brand"],
+            "category": row["category"],
+            "description": row["description"],
+            "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+            "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None
+        }
+        
     except Exception as e:
         print(f"⚠️ Error creating model: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create model: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
 
 @app.get("/api/v1/models/{model_id}")
 async def get_model(model_id: int):
@@ -579,7 +582,8 @@ async def get_admin_stats():
 @app.get("/api/v1/tickets")
 async def get_tickets():
     """Получить список тикетов"""
-    if not db_pool:
+    conn = await get_db_connection()
+    if not conn:
         # Mock данные если база недоступна
         return {
             "tickets": [
@@ -596,35 +600,37 @@ async def get_tickets():
         }
     
     try:
-        async with db_pool.acquire() as conn:
-            rows = await conn.fetch("""
-                SELECT id, user_id, model_id, subject, description, priority, 
-                       status, assignee_id, created_at, updated_at, closed_at
-                FROM tickets 
-                ORDER BY created_at DESC
-            """)
-            
-            tickets = []
-            for row in rows:
-                tickets.append({
-                    "id": row["id"],
-                    "user_id": row["user_id"],
-                    "model_id": row["model_id"],
-                    "subject": row["subject"],
-                    "description": row["description"],
-                    "priority": row["priority"],
-                    "status": row["status"],
-                    "assignee_id": row["assignee_id"],
-                    "created_at": row["created_at"].isoformat() if row["created_at"] else None,
-                    "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
-                    "closed_at": row["closed_at"].isoformat() if row["closed_at"] else None
-                })
-            
-            return {"tickets": tickets}
-            
+        rows = await conn.fetch("""
+            SELECT id, user_id, model_id, subject, description, priority, 
+                   status, assignee_id, created_at, updated_at, closed_at
+            FROM tickets 
+            ORDER BY created_at DESC
+        """)
+        
+        tickets = []
+        for row in rows:
+            tickets.append({
+                "id": row["id"],
+                "user_id": row["user_id"],
+                "model_id": row["model_id"],
+                "subject": row["subject"],
+                "description": row["description"],
+                "priority": row["priority"],
+                "status": row["status"],
+                "assignee_id": row["assignee_id"],
+                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+                "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
+                "closed_at": row["closed_at"].isoformat() if row["closed_at"] else None
+            })
+        
+        return {"tickets": tickets}
+        
     except Exception as e:
         print(f"⚠️ Error getting tickets: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get tickets: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
 
 @app.post("/api/v1/tickets")
 async def create_ticket(ticket_data: dict):
