@@ -29,11 +29,18 @@ async def lifespan(app: FastAPI):
     # Startup
     print("🚀 Starting Telegram Mini App Backend...")
     
-    # Создание таблиц БД
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Создание таблиц БД только если есть DATABASE_URL
+    if engine is not None:
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            print("✅ Database tables created")
+        except Exception as e:
+            print(f"⚠️ Database connection failed: {e}")
+            print("🔄 Running without database...")
+    else:
+        print("⚠️ No database configured, running in API-only mode")
     
-    print("✅ Database tables created")
     print("✅ Application startup complete")
     
     yield
@@ -89,14 +96,30 @@ async def root():
     return {
         "message": "Telegram Mini App API",
         "version": "1.0.0",
-        "status": "running"
+        "status": "running",
+        "environment": settings.ENVIRONMENT,
+        "debug": settings.DEBUG
     }
 
 
 @app.get("/health")
 async def health_check():
     """Проверка здоровья приложения"""
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "timestamp": "2024-01-01T00:00:00Z",
+        "version": "1.0.0"
+    }
+
+
+@app.get("/test")
+async def test_endpoint():
+    """Тестовый эндпоинт для проверки работы"""
+    return {
+        "message": "API is working!",
+        "cors_origins": settings.CORS_ORIGINS,
+        "has_database": bool(settings.DATABASE_URL and not settings.DATABASE_URL.startswith("postgresql://user:password"))
+    }
 
 
 if __name__ == "__main__":

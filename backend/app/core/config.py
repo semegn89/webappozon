@@ -50,7 +50,12 @@ class Settings(BaseSettings):
     RATE_LIMIT_WINDOW: int = 3600  # seconds
     
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://yourdomain.com"]
+    CORS_ORIGINS: List[str] = [
+        "http://localhost:3000", 
+        "https://gakshop.com",
+        "https://*.gakshop.com",
+        "https://*.vercel.app"
+    ]
     
     # Логирование
     LOG_LEVEL: str = "INFO"
