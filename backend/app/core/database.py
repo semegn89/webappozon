@@ -15,7 +15,10 @@ AsyncSessionLocal = None
 if settings.DATABASE_URL and settings.DATABASE_URL != "postgresql://user:password@localhost:5432/telegram_mini_app":
     try:
         print(f"🔍 Creating database engine with URL: {settings.DATABASE_URL}")
+        # Убираем sslmode параметр и заменяем на postgresql+asyncpg
         async_url = settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+        if "?sslmode=" in async_url:
+            async_url = async_url.split("?sslmode=")[0] + "?sslmode=require"
         print(f"🔍 Async URL: {async_url}")
         
         engine = create_async_engine(
