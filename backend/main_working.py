@@ -24,8 +24,8 @@ async def lifespan(app: FastAPI):
     database_url = os.getenv("DATABASE_URL")
     if database_url and not database_url.startswith("postgresql://user:password"):
         try:
-            # Убираем sslmode параметр
-            clean_url = database_url.split("?sslmode=")[0]
+            # Заменяем sslmode=require на sslmode=prefer для asyncpg
+            clean_url = database_url.replace("sslmode=require", "sslmode=prefer")
             print(f"🔍 Connecting to database: {clean_url}")
             
             db_pool = await asyncpg.create_pool(clean_url, min_size=1, max_size=10)
