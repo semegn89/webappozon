@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Download, Eye, FileText, Package, Calendar, Tag } from 'lucide-react'
+import { ArrowLeft, Download, Eye, FileText, Package } from 'lucide-react'
 import { modelsApi, filesApi } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
 
@@ -46,7 +46,7 @@ const ModelDetail: React.FC = () => {
     }
   }
 
-  const getFileIcon = (fileType: string) => {
+  const getFileIcon = (fileType: string): string => {
     switch (fileType.toLowerCase()) {
       case 'pdf':
         return '📄'
@@ -64,7 +64,7 @@ const ModelDetail: React.FC = () => {
     }
   }
 
-  const formatFileSize = (bytes: number) => {
+  const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes'
     const k = 1024
     const sizes = ['Bytes', 'KB', 'MB', 'GB']

@@ -166,7 +166,7 @@ const TicketDetail: React.FC = () => {
           </div>
         ) : (
           <div style={{ marginBottom: '16px' }}>
-            {messages.map((message) => (
+            {messages.map((message: any) => (
               <div 
                 key={message.id} 
                 style={{ 

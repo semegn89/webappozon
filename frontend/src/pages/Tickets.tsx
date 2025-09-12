@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Filter, Ticket, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { Plus, Ticket, Clock, CheckCircle, XCircle } from 'lucide-react'
 import { ticketsApi } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
 
@@ -170,7 +170,7 @@ const Tickets: React.FC = () => {
         </div>
       ) : (
         <div className="list">
-          {tickets.map((ticket) => (
+          {tickets.map((ticket: any) => (
             <div 
               key={ticket.id} 
               className="list-item"
@@ -217,25 +217,25 @@ const Tickets: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '16px' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '24px', fontWeight: '600', color: '#1976d2' }}>
-                {tickets.filter(t => t.status === 'open').length}
+                {tickets.filter((t: any) => t.status === 'open').length}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>Открытые</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '24px', fontWeight: '600', color: '#f57c00' }}>
-                {tickets.filter(t => t.status === 'in_progress').length}
+                {tickets.filter((t: any) => t.status === 'in_progress').length}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>В работе</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '24px', fontWeight: '600', color: '#388e3c' }}>
-                {tickets.filter(t => t.status === 'resolved').length}
+                {tickets.filter((t: any) => t.status === 'resolved').length}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>Решенные</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '24px', fontWeight: '600', color: '#7b1fa2' }}>
-                {tickets.filter(t => t.status === 'closed').length}
+                {tickets.filter((t: any) => t.status === 'closed').length}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>Закрытые</div>
             </div>

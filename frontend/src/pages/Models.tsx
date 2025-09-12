@@ -138,7 +138,7 @@ const Models: React.FC = () => {
           </div>
 
           <div className="list">
-            {models.map((model) => (
+            {models.map((model: any) => (
               <div 
                 key={model.id} 
                 className="list-item"

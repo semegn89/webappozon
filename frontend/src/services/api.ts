@@ -173,7 +173,7 @@ export const filesApi = {
     const response = await api.post(`/files/`, formData, {
       params: { model_id: modelId },
       headers: { 'Content-Type': 'multipart/form-data' }
-    })
+    } as any)
     return response.data
   },
   
