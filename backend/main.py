@@ -24,9 +24,11 @@ async def lifespan(app: FastAPI):
     database_url = os.getenv("DATABASE_URL")
     if database_url and not database_url.startswith("postgresql://user:password"):
         try:
-            # Убираем channel_binding=require для asyncpg
-            clean_url = database_url.replace("&channel_binding=require", "")
+            # Убираем channel_binding=require и заменяем sslmode=require на sslmode=prefer
+            clean_url = database_url.replace("&channel_binding=require", "").replace("sslmode=require", "sslmode=prefer")
             print(f"🔍 Connecting to database: {clean_url}")
+            print(f"🔍 Database URL length: {len(database_url)}")
+            print(f"🔍 Clean URL length: {len(clean_url)}")
             
             db_pool = await asyncpg.create_pool(clean_url, min_size=1, max_size=10)
             print("✅ Database connected")
@@ -37,6 +39,8 @@ async def lifespan(app: FastAPI):
             
         except Exception as e:
             print(f"⚠️ Database connection failed: {e}")
+            print(f"⚠️ Error type: {type(e)}")
+            print(f"⚠️ Error details: {str(e)}")
             db_pool = None
     else:
         print("⚠️ No database configured, running with mock data")
