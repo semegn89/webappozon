@@ -41,30 +41,30 @@ const Admin: React.FC = () => {
   })
 
   const tabs = [
-    { id: 'dashboard', label: 'Дашборд', icon: BarChart3, color: 'from-blue-500 to-blue-600' },
-    { id: 'models', label: 'Модели', icon: Package, color: 'from-green-500 to-green-600' },
-    { id: 'tickets', label: 'Тикеты', icon: Ticket, color: 'from-orange-500 to-orange-600' },
-    { id: 'users', label: 'Пользователи', icon: Users, color: 'from-purple-500 to-purple-600' }
+    { id: 'dashboard', label: 'Дашборд', icon: BarChart3, color: '#3b82f6' },
+    { id: 'models', label: 'Модели', icon: Package, color: '#10b981' },
+    { id: 'tickets', label: 'Тикеты', icon: Ticket, color: '#f59e0b' },
+    { id: 'users', label: 'Пользователи', icon: Users, color: '#8b5cf6' }
   ]
 
   if (statsLoading) return <LoadingSpinner message="Загрузка админ-панели..." />
 
   // Статистические карточки
   const StatCard = ({ title, value, icon: Icon, color, trend }: any) => (
-    <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-600 text-sm font-medium">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+    <div className="admin-stat-card">
+      <div className="stat-card-content">
+        <div className="stat-card-info">
+          <p className="stat-card-title">{title}</p>
+          <p className="stat-card-value">{value}</p>
           {trend && (
-            <div className="flex items-center mt-2">
-              <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-              <span className="text-green-600 text-sm font-medium">{trend}</span>
+            <div className="stat-card-trend">
+              <TrendingUp className="trend-icon" />
+              <span className="trend-text">{trend}</span>
             </div>
           )}
         </div>
-        <div className={`p-3 rounded-xl bg-gradient-to-r ${color}`}>
-          <Icon className="w-6 h-6 text-white" />
+        <div className="stat-card-icon" style={{ backgroundColor: color }}>
+          <Icon size={24} color="white" />
         </div>
       </div>
     </div>
@@ -72,305 +72,319 @@ const Admin: React.FC = () => {
 
   // Карточка модели
   const ModelCard = ({ model }: any) => (
-    <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <Package className="w-5 h-5 text-blue-600" />
+    <div className="admin-card model-card">
+      <div className="model-card-header">
+        <div className="model-card-info">
+          <div className="model-icon">
+            <Package size={20} color="#3b82f6" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">{model.name}</h3>
-            <p className="text-gray-600 text-sm">{model.category}</p>
+            <h3 className="model-title">{model.name}</h3>
+            <p className="model-category">{model.category}</p>
           </div>
         </div>
-        <div className="flex space-x-2">
-          <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
-            <Edit className="w-4 h-4" />
+        <div className="model-actions">
+          <button className="action-btn edit-btn">
+            <Edit size={16} />
           </button>
-          <button className="p-2 text-gray-400 hover:text-red-600 transition-colors">
-            <Trash2 className="w-4 h-4" />
+          <button className="action-btn delete-btn">
+            <Trash2 size={16} />
           </button>
         </div>
       </div>
-      <p className="text-gray-600 text-sm mb-4">{model.description}</p>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4 text-sm text-gray-500">
-          <div className="flex items-center">
-            <Eye className="w-4 h-4 mr-1" />
+      <p className="model-description">{model.description}</p>
+      <div className="model-footer">
+        <div className="model-stats">
+          <div className="model-stat">
+            <Eye size={16} />
             <span>0 просмотров</span>
           </div>
-          <div className="flex items-center">
-            <Download className="w-4 h-4 mr-1" />
+          <div className="model-stat">
+            <Download size={16} />
             <span>0 загрузок</span>
           </div>
         </div>
-        <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-          Активна
-        </span>
+        <span className="status-badge status-active">Активна</span>
       </div>
     </div>
   )
 
   // Карточка тикета
   const TicketCard = ({ ticket }: any) => (
-    <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className={`p-2 rounded-lg ${
-            ticket.status === 'open' ? 'bg-orange-100' : 
-            ticket.status === 'closed' ? 'bg-green-100' : 'bg-blue-100'
-          }`}>
-            <Ticket className={`w-5 h-5 ${
-              ticket.status === 'open' ? 'text-orange-600' : 
-              ticket.status === 'closed' ? 'text-green-600' : 'text-blue-600'
-            }`} />
+    <div className="admin-card ticket-card">
+      <div className="ticket-card-header">
+        <div className="ticket-card-info">
+          <div className={`ticket-icon ${ticket.status}`}>
+            <Ticket size={20} />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">{ticket.subject}</h3>
-            <p className="text-gray-600 text-sm">Приоритет: {ticket.priority}</p>
+            <h3 className="ticket-title">{ticket.subject}</h3>
+            <p className="ticket-priority">Приоритет: {ticket.priority}</p>
           </div>
         </div>
-        <div className="flex space-x-2">
-          <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
-            <MessageSquare className="w-4 h-4" />
+        <div className="ticket-actions">
+          <button className="action-btn message-btn">
+            <MessageSquare size={16} />
           </button>
-          <button className="p-2 text-gray-400 hover:text-green-600 transition-colors">
-            <CheckCircle className="w-4 h-4" />
+          <button className="action-btn check-btn">
+            <CheckCircle size={16} />
           </button>
         </div>
       </div>
-      <p className="text-gray-600 text-sm mb-4">{ticket.description}</p>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4 text-sm text-gray-500">
-          <div className="flex items-center">
-            <Calendar className="w-4 h-4 mr-1" />
-            <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+      <p className="ticket-description">{ticket.description}</p>
+      <div className="ticket-footer">
+        <div className="ticket-date">
+          <Calendar size={16} />
+          <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+        </div>
+        <span className={`status-badge status-${ticket.status}`}>
+          {ticket.status === 'open' && 'Открыт'}
+          {ticket.status === 'in_progress' && 'В работе'}
+          {ticket.status === 'resolved' && 'Решен'}
+          {ticket.status === 'closed' && 'Закрыт'}
+        </span>
+      </div>
+    </div>
+  )
+
+  // Карточка пользователя
+  const UserCard = ({ user }: any) => (
+    <div className="admin-card user-card">
+      <div className="user-card-header">
+        <div className="user-avatar">
+          <Users size={20} color="#8b5cf6" />
+        </div>
+        <div className="user-info">
+          <h3 className="user-name">{user.full_name}</h3>
+          <p className="user-username">@{user.username || 'без username'}</p>
+        </div>
+        <div className="user-actions">
+          <button className="action-btn edit-btn">
+            <Edit size={16} />
+          </button>
+        </div>
+      </div>
+      <div className="user-footer">
+        <div className="user-stats">
+          <div className="user-stat">
+            <Ticket size={16} />
+            <span>0 тикетов</span>
+          </div>
+          <div className="user-stat">
+            <Calendar size={16} />
+            <span>{new Date(user.created_at).toLocaleDateString()}</span>
           </div>
         </div>
-        <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-          ticket.status === 'open' ? 'bg-orange-100 text-orange-800' : 
-          ticket.status === 'closed' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-        }`}>
-          {ticket.status === 'open' ? 'Открыт' : 
-           ticket.status === 'closed' ? 'Закрыт' : 'В работе'}
+        <span className={`status-badge ${user.is_blocked ? 'status-blocked' : 'status-active'}`}>
+          {user.is_blocked ? 'Заблокирован' : 'Активен'}
         </span>
       </div>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Красивый заголовок */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="p-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl">
-                <Settings className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                  Админ Кабинет
-                </h1>
-                <p className="text-gray-600 mt-2 text-lg">Управление системой и контентом</p>
-              </div>
-            </div>
+    <div className="admin-container">
+      {/* Header */}
+      <div className="admin-header">
+        <div className="admin-header-content">
+          <h1 className="admin-title">Админ Кабинет</h1>
+          <p className="admin-subtitle">Управление системой и контентом</p>
+          <button 
+            className="back-btn"
+            onClick={() => navigate('/')}
+          >
+            ← Вернуться в приложение
+          </button>
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="admin-tabs">
+        {tabs.map((tab) => {
+          const Icon = tab.icon
+          return (
             <button
-              onClick={() => navigate('/')}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              key={tab.id}
+              className={`admin-tab ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id as any)}
             >
-              ← Вернуться в приложение
+              <Icon size={20} color={activeTab === tab.id ? 'white' : tab.color} />
+              <span>{tab.label}</span>
             </button>
+          )
+        })}
+      </div>
+
+      {/* Content */}
+      <div className="admin-content">
+        {activeTab === 'dashboard' && (
+          <div className="dashboard-content">
+            {/* Stats */}
+            <div className="stats-grid">
+              <StatCard
+                title="Всего моделей"
+                value={modelsData?.total || 0}
+                icon={Package}
+                color="#3b82f6"
+                trend="+12%"
+              />
+              <StatCard
+                title="Активных тикетов"
+                value={ticketsData?.items?.filter((t: any) => t.status === 'open').length || 0}
+                icon={Ticket}
+                color="#f59e0b"
+                trend="+5%"
+              />
+              <StatCard
+                title="Пользователей"
+                value={usersData?.total || 0}
+                icon={Users}
+                color="#8b5cf6"
+                trend="+8%"
+              />
+              <StatCard
+                title="Загрузок"
+                value="1,234"
+                icon={Download}
+                color="#10b981"
+                trend="+15%"
+              />
+            </div>
+
+            {/* Quick Actions */}
+            <div className="quick-actions-section">
+              <h2 className="section-title">Быстрые действия</h2>
+              <div className="quick-actions-grid">
+                <button className="quick-action-btn">
+                  <Plus size={24} color="white" />
+                  <div>
+                    <h3>Добавить модель</h3>
+                    <p>Создать новую модель</p>
+                  </div>
+                </button>
+                <button className="quick-action-btn">
+                  <Upload size={24} color="white" />
+                  <div>
+                    <h3>Загрузить файл</h3>
+                    <p>Добавить инструкцию</p>
+                  </div>
+                </button>
+                <button className="quick-action-btn">
+                  <BarChart3 size={24} color="white" />
+                  <div>
+                    <h3>Аналитика</h3>
+                    <p>Посмотреть статистику</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="recent-activity-section">
+              <h2 className="section-title">Последние активности</h2>
+              <div className="activity-list">
+                <div className="activity-item">
+                  <div className="activity-icon">
+                    <Package size={16} color="#3b82f6" />
+                  </div>
+                  <div className="activity-content">
+                    <p className="activity-text">Добавлена новая модель "Sample Model"</p>
+                    <p className="activity-time">2 часа назад</p>
+                  </div>
+                </div>
+                <div className="activity-item">
+                  <div className="activity-icon">
+                    <Ticket size={16} color="#f59e0b" />
+                  </div>
+                  <div className="activity-content">
+                    <p className="activity-text">Создан новый тикет поддержки</p>
+                    <p className="activity-time">4 часа назад</p>
+                  </div>
+                </div>
+                <div className="activity-item">
+                  <div className="activity-icon">
+                    <Users size={16} color="#8b5cf6" />
+                  </div>
+                  <div className="activity-content">
+                    <p className="activity-text">Новый пользователь зарегистрирован</p>
+                    <p className="activity-time">6 часов назад</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Вкладки */}
-        <div className="bg-white rounded-2xl shadow-lg p-2 mb-8 border border-gray-100">
-          <div className="flex space-x-2">
-            {tabs.map((tab) => {
-              const Icon = tab.icon
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center space-x-3 px-6 py-4 rounded-xl font-medium transition-all duration-300 ${
-                    isActive
-                      ? `bg-gradient-to-r ${tab.color} text-white shadow-lg transform scale-105`
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{tab.label}</span>
-                </button>
-              )
-            })}
+        {activeTab === 'models' && (
+          <div className="models-content">
+            <div className="content-header">
+              <h2 className="section-title">Управление моделями</h2>
+              <button className="admin-button">
+                <Plus size={20} />
+                Добавить модель
+              </button>
+            </div>
+            <div className="models-grid">
+              {modelsData?.items?.map((model: any) => (
+                <ModelCard key={model.id} model={model} />
+              )) || (
+                <div className="empty-state">
+                  <Package size={48} color="#9ca3af" />
+                  <h3>Модели не найдены</h3>
+                  <p>Добавьте первую модель в систему</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Контент */}
-        <div className="space-y-8">
-          {activeTab === 'dashboard' && (
-            <>
-              {/* Статистика */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard
-                  title="Всего моделей"
-                  value={modelsData?.models?.length || 0}
-                  icon={Package}
-                  color="from-blue-500 to-blue-600"
-                  trend="+12%"
-                />
-                <StatCard
-                  title="Активных тикетов"
-                  value={ticketsData?.tickets?.filter((t: any) => t.status === 'open').length || 0}
-                  icon={Ticket}
-                  color="from-orange-500 to-orange-600"
-                  trend="+5%"
-                />
-                <StatCard
-                  title="Пользователей"
-                  value={usersData?.users?.length || 0}
-                  icon={Users}
-                  color="from-green-500 to-green-600"
-                  trend="+8%"
-                />
-                <StatCard
-                  title="Загрузок"
-                  value="1,234"
-                  icon={Download}
-                  color="from-purple-500 to-purple-600"
-                  trend="+15%"
-                />
-              </div>
-
-              {/* Быстрые действия */}
-              <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Быстрые действия</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <button className="p-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                    <div className="flex items-center space-x-4">
-                      <Plus className="w-8 h-8" />
-                      <div className="text-left">
-                        <h3 className="font-semibold text-lg">Добавить модель</h3>
-                        <p className="text-blue-100 text-sm">Создать новую модель</p>
-                      </div>
-                    </div>
-                  </button>
-                  <button className="p-6 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                    <div className="flex items-center space-x-4">
-                      <Upload className="w-8 h-8" />
-                      <div className="text-left">
-                        <h3 className="font-semibold text-lg">Загрузить файл</h3>
-                        <p className="text-green-100 text-sm">Добавить инструкцию</p>
-                      </div>
-                    </div>
-                  </button>
-                  <button className="p-6 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                    <div className="flex items-center space-x-4">
-                      <BarChart3 className="w-8 h-8" />
-                      <div className="text-left">
-                        <h3 className="font-semibold text-lg">Аналитика</h3>
-                        <p className="text-purple-100 text-sm">Посмотреть статистику</p>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Последние активности */}
-              <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Последние активности</h2>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Package className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">Добавлена новая модель "Sample Model"</p>
-                      <p className="text-gray-600 text-sm">2 часа назад</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
-                    <div className="p-2 bg-orange-100 rounded-lg">
-                      <Ticket className="w-5 h-5 text-orange-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">Создан новый тикет поддержки</p>
-                      <p className="text-gray-600 text-sm">4 часа назад</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <Users className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">Новый пользователь зарегистрирован</p>
-                      <p className="text-gray-600 text-sm">6 часов назад</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {activeTab === 'models' && (
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Управление моделями</h2>
-                <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl">
-                  <Plus className="w-5 h-5 mr-2 inline" />
-                  Добавить модель
-                </button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {modelsData?.models?.map((model: any) => (
-                  <ModelCard key={model.id} model={model} />
-                ))}
+        {activeTab === 'tickets' && (
+          <div className="tickets-content">
+            <div className="content-header">
+              <h2 className="section-title">Управление тикетами</h2>
+              <div className="ticket-filters">
+                <button className="filter-btn active">Все</button>
+                <button className="filter-btn">Открытые</button>
+                <button className="filter-btn">В работе</button>
+                <button className="filter-btn">Закрытые</button>
               </div>
             </div>
-          )}
-
-          {activeTab === 'tickets' && (
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Управление тикетами</h2>
-                <div className="flex space-x-3">
-                  <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                    <Filter className="w-4 h-4 mr-2 inline" />
-                    Фильтр
-                  </button>
-                  <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                    <Search className="w-4 h-4 mr-2 inline" />
-                    Поиск
-                  </button>
+            <div className="tickets-list">
+              {ticketsData?.items?.map((ticket: any) => (
+                <TicketCard key={ticket.id} ticket={ticket} />
+              )) || (
+                <div className="empty-state">
+                  <Ticket size={48} color="#9ca3af" />
+                  <h3>Тикеты не найдены</h3>
+                  <p>Пока нет тикетов поддержки</p>
                 </div>
-              </div>
-              <div className="space-y-4">
-                {ticketsData?.tickets?.map((ticket: any) => (
-                  <TicketCard key={ticket.id} ticket={ticket} />
-                ))}
-              </div>
+              )}
             </div>
-          )}
+          </div>
+        )}
 
-          {activeTab === 'users' && (
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Управление пользователями</h2>
-                <button className="px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-xl hover:from-green-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl">
-                  <Users className="w-5 h-5 mr-2 inline" />
-                  Добавить пользователя
-                </button>
-              </div>
-              <div className="text-center py-12">
-                <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Пользователи</h3>
-                <p className="text-gray-600">Здесь будет список пользователей</p>
+        {activeTab === 'users' && (
+          <div className="users-content">
+            <div className="content-header">
+              <h2 className="section-title">Управление пользователями</h2>
+              <div className="user-search">
+                <Search size={20} color="#9ca3af" />
+                <input type="text" placeholder="Поиск пользователей..." />
               </div>
             </div>
-          )}
-        </div>
+            <div className="users-list">
+              {usersData?.items?.map((user: any) => (
+                <UserCard key={user.id} user={user} />
+              )) || (
+                <div className="empty-state">
+                  <Users size={48} color="#9ca3af" />
+                  <h3>Пользователи не найдены</h3>
+                  <p>Пока нет зарегистрированных пользователей</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
