@@ -170,6 +170,52 @@ async def test_endpoint():
         "database_url_from_env": os.getenv("DATABASE_URL", "NOT_SET")[:50] + "..." if os.getenv("DATABASE_URL") else "NOT_SET"
     }
 
+@app.get("/test-db")
+async def test_database_connection():
+    """Тестовый endpoint для проверки подключения к базе данных"""
+    print("🔍 Test database endpoint called")
+    
+    database_url = os.getenv("DATABASE_URL")
+    print(f"🔍 DATABASE_URL: {database_url}")
+    
+    if not database_url:
+        return {"error": "DATABASE_URL not configured"}
+    
+    try:
+        # Убираем channel_binding=require и заменяем sslmode=require на sslmode=prefer
+        clean_url = database_url.replace("&channel_binding=require", "").replace("sslmode=require", "sslmode=prefer")
+        print(f"🔍 Clean URL: {clean_url}")
+        
+        # Пробуем подключиться
+        test_pool = await asyncpg.create_pool(clean_url, min_size=1, max_size=1)
+        print("✅ Database connection successful")
+        
+        # Тестируем запрос
+        async with test_pool.acquire() as conn:
+            result = await conn.fetchval("SELECT 1")
+            print(f"✅ Test query result: {result}")
+        
+        await test_pool.close()
+        print("✅ Database connection closed")
+        
+        return {
+            "status": "success",
+            "message": "Database connection successful",
+            "test_query_result": result
+        }
+        
+    except Exception as e:
+        print(f"⚠️ Database connection failed: {e}")
+        print(f"⚠️ Error type: {type(e)}")
+        print(f"⚠️ Error details: {str(e)}")
+        
+        return {
+            "status": "error",
+            "message": "Database connection failed",
+            "error": str(e),
+            "error_type": str(type(e))
+        }
+
 # ===== AUTH ENDPOINTS =====
 
 @app.post("/api/v1/auth/verify")
