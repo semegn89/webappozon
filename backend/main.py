@@ -24,10 +24,11 @@ async def lifespan(app: FastAPI):
     database_url = os.getenv("DATABASE_URL")
     if database_url and not database_url.startswith("postgresql://user:password"):
         try:
-            # Используем оригинальный URL без изменений
-            print(f"🔍 Connecting to database: {database_url}")
+            # Убираем channel_binding=require для asyncpg
+            clean_url = database_url.replace("&channel_binding=require", "")
+            print(f"🔍 Connecting to database: {clean_url}")
             
-            db_pool = await asyncpg.create_pool(database_url, min_size=1, max_size=10)
+            db_pool = await asyncpg.create_pool(clean_url, min_size=1, max_size=10)
             print("✅ Database connected")
             
             # Создаем таблицы
