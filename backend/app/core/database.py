@@ -14,8 +14,12 @@ AsyncSessionLocal = None
 
 if settings.DATABASE_URL and settings.DATABASE_URL != "postgresql://user:password@localhost:5432/telegram_mini_app":
     try:
+        print(f"🔍 Creating database engine with URL: {settings.DATABASE_URL}")
+        async_url = settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+        print(f"🔍 Async URL: {async_url}")
+        
         engine = create_async_engine(
-            settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://"),
+            async_url,
             echo=settings.DEBUG,
             future=True
         )
@@ -26,10 +30,16 @@ if settings.DATABASE_URL and settings.DATABASE_URL != "postgresql://user:passwor
             class_=AsyncSession,
             expire_on_commit=False
         )
+        print("✅ Database engine created successfully")
     except Exception as e:
         print(f"⚠️ Failed to create database engine: {e}")
+        print(f"⚠️ Error type: {type(e)}")
+        import traceback
+        print(f"⚠️ Traceback: {traceback.format_exc()}")
         engine = None
         AsyncSessionLocal = None
+else:
+    print(f"⚠️ DATABASE_URL not configured or is default: {settings.DATABASE_URL}")
 
 
 class Base(DeclarativeBase):
