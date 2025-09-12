@@ -4,9 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { 
   Settings, Users, Package, Ticket, BarChart3, Plus, 
   TrendingUp, Eye, Download, MessageSquare, Calendar,
-  Star, AlertCircle, CheckCircle, Clock, Filter,
-  Search, Edit, Trash2, Upload, FileText, Image,
-  Activity, Zap, Shield, Globe
+  CheckCircle, Filter, Search, Edit, Trash2, Upload
 } from 'lucide-react'
 import { adminApi, modelsApi, ticketsApi } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
