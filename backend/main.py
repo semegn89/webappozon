@@ -48,6 +48,18 @@ async def get_db_pool():
         print(f"⚠️ Error details: {str(e)}")
         return None
 
+async def get_db_connection():
+    """Получить соединение с базой данных"""
+    pool = await get_db_pool()
+    if pool is None:
+        return None
+    
+    try:
+        return await pool.acquire()
+    except Exception as e:
+        print(f"⚠️ Error acquiring connection: {e}")
+        return None
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Управление жизненным циклом приложения"""
@@ -297,7 +309,8 @@ async def get_current_user():
 @app.get("/api/v1/models")
 async def get_models():
     """Получить список моделей"""
-    if not db_pool:
+    conn = await get_db_connection()
+    if not conn:
         # Mock данные если база недоступна
         return {
             "models": [
@@ -313,37 +326,39 @@ async def get_models():
         }
     
     try:
-        async with db_pool.acquire() as conn:
-            rows = await conn.fetch("""
-                SELECT id, name, code, brand, category, year_from, year_to, 
-                       description, image_url, is_active, created_at, updated_at
-                FROM models 
-                WHERE is_active = true
-                ORDER BY created_at DESC
-            """)
-            
-            models = []
-            for row in rows:
-                models.append({
-                    "id": row["id"],
-                    "name": row["name"],
-                    "code": row["code"],
-                    "brand": row["brand"],
-                    "category": row["category"],
-                    "year_from": row["year_from"],
-                    "year_to": row["year_to"],
-                    "description": row["description"],
-                    "image_url": row["image_url"],
-                    "is_active": row["is_active"],
-                    "created_at": row["created_at"].isoformat() if row["created_at"] else None,
-                    "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None
-                })
-            
-            return {"models": models}
-            
+        rows = await conn.fetch("""
+            SELECT id, name, code, brand, category, year_from, year_to, 
+                   description, image_url, is_active, created_at, updated_at
+            FROM models 
+            WHERE is_active = true
+            ORDER BY created_at DESC
+        """)
+        
+        models = []
+        for row in rows:
+            models.append({
+                "id": row["id"],
+                "name": row["name"],
+                "code": row["code"],
+                "brand": row["brand"],
+                "category": row["category"],
+                "year_from": row["year_from"],
+                "year_to": row["year_to"],
+                "description": row["description"],
+                "image_url": row["image_url"],
+                "is_active": row["is_active"],
+                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+                "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None
+            })
+        
+        return {"models": models}
+        
     except Exception as e:
         print(f"⚠️ Error getting models: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get models: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
 
 @app.post("/api/v1/models")
 async def create_model(model_data: dict):
