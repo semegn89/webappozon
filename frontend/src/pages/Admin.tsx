@@ -18,7 +18,7 @@ const Admin: React.FC = () => {
   const [editingModel, setEditingModel] = useState<any>(null)
 
   // Получаем статистику
-  const { isLoading: statsLoading } = useQuery({
+  const { data: statsData, isLoading: statsLoading } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: adminApi.getAdminStats
   })
@@ -269,28 +269,28 @@ const Admin: React.FC = () => {
             <div className="stats-grid">
               <StatCard
                 title="Всего моделей"
-                value={modelsData?.total || 0}
+                value={statsData?.total_models || 0}
                 icon={Package}
                 color="#3b82f6"
                 trend="+12%"
               />
               <StatCard
                 title="Активных тикетов"
-                value={ticketsData?.items?.filter((t: any) => t.status === 'open').length || 0}
+                value={statsData?.active_tickets || 0}
                 icon={Ticket}
                 color="#f59e0b"
                 trend="+5%"
               />
               <StatCard
                 title="Пользователей"
-                value={usersData?.total || 0}
+                value={statsData?.total_users || 0}
                 icon={Users}
                 color="#8b5cf6"
                 trend="+8%"
               />
               <StatCard
                 title="Загрузок"
-                value="1,234"
+                value={statsData?.total_downloads || 0}
                 icon={Download}
                 color="#10b981"
                 trend="+15%"

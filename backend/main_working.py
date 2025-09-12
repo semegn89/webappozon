@@ -422,6 +422,43 @@ async def delete_model(model_id: int):
         print(f"⚠️ Error deleting model: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete model: {str(e)}")
 
+# ===== ADMIN STATS ENDPOINT =====
+
+@app.get("/api/v1/admin/stats")
+async def get_admin_stats():
+    """Получить статистику для админ панели"""
+    if not db_pool:
+        # Mock данные если база недоступна
+        return {
+            "total_models": 0,
+            "active_tickets": 0,
+            "total_users": 0,
+            "total_downloads": 1234
+        }
+    
+    try:
+        async with db_pool.acquire() as conn:
+            # Получаем статистику
+            models_count = await conn.fetchval("SELECT COUNT(*) FROM models")
+            active_tickets = await conn.fetchval("SELECT COUNT(*) FROM tickets WHERE status = 'open'")
+            users_count = await conn.fetchval("SELECT COUNT(*) FROM users")
+            
+            return {
+                "total_models": models_count or 0,
+                "active_tickets": active_tickets or 0,
+                "total_users": users_count or 0,
+                "total_downloads": 1234  # Пока заглушка
+            }
+            
+    except Exception as e:
+        print(f"⚠️ Error getting admin stats: {e}")
+        return {
+            "total_models": 0,
+            "active_tickets": 0,
+            "total_users": 0,
+            "total_downloads": 1234
+        }
+
 # ===== TICKETS ENDPOINTS =====
 
 @app.get("/api/v1/tickets")
