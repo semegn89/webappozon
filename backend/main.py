@@ -586,6 +586,54 @@ async def get_admin_stats():
             "total_downloads": 1234
         }
 
+# ===== USERS ENDPOINTS =====
+
+@app.get("/api/v1/users")
+async def get_users():
+    """Получить список пользователей"""
+    conn = await get_db_connection()
+    if not conn:
+        # Mock данные если база недоступна
+        return {
+            "users": [
+                {
+                    "id": 1,
+                    "username": "test_user",
+                    "first_name": "Test",
+                    "last_name": "User",
+                    "is_active": True,
+                    "created_at": "2024-01-01T00:00:00Z"
+                }
+            ]
+        }
+    
+    try:
+        rows = await conn.fetch("""
+            SELECT id, username, first_name, last_name, is_active, created_at
+            FROM users 
+            ORDER BY created_at DESC
+        """)
+        
+        users = []
+        for row in rows:
+            users.append({
+                "id": row["id"],
+                "username": row["username"],
+                "first_name": row["first_name"],
+                "last_name": row["last_name"],
+                "is_active": row["is_active"],
+                "created_at": row["created_at"].isoformat() if row["created_at"] else None
+            })
+        
+        return {"users": users}
+        
+    except Exception as e:
+        print(f"⚠️ Error getting users: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get users: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
+
 # ===== TICKETS ENDPOINTS =====
 
 @app.get("/api/v1/tickets")
