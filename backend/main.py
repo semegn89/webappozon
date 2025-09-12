@@ -12,6 +12,7 @@ import os
 from contextlib import asynccontextmanager
 
 # Попытка импорта модулей базы данных
+HAS_DATABASE = False
 try:
     from app.core.config import settings
     from app.core.database import engine, Base, get_db
@@ -26,6 +27,9 @@ try:
 except ImportError as e:
     print(f"⚠️ Database modules not available: {e}")
     HAS_DATABASE = False
+except Exception as e:
+    print(f"⚠️ Database modules error: {e}")
+    HAS_DATABASE = False
 
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -34,6 +38,8 @@ limiter = Limiter(key_func=get_remote_address)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Управление жизненным циклом приложения"""
+    global HAS_DATABASE
+    
     # Startup
     print("🚀 Starting Telegram Mini App Backend - With Database Support...")
     
@@ -46,8 +52,10 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             print(f"⚠️ Database connection failed: {e}")
             print("🔄 Running without database...")
+            HAS_DATABASE = False
     else:
         print("⚠️ No database configured, running with mock data")
+        HAS_DATABASE = False
     
     print("✅ Application startup complete")
     
