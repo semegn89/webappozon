@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     
     # База данных
-    DATABASE_URL: str = "postgresql://user:password@localhost:5432/telegram_mini_app"
+    DATABASE_URL: Optional[str] = None
     
     # Telegram
     TELEGRAM_BOT_TOKEN: str = "7870121478:AAGtGNo-Hrx3Ox4OZsbuqZniexzeR_tl47w"

@@ -15,7 +15,9 @@ from contextlib import asynccontextmanager
 HAS_DATABASE = False
 try:
     from app.core.config import settings
+    print(f"🔍 DATABASE_URL from settings: {settings.DATABASE_URL}")
     from app.core.database import engine, Base, get_db
+    print(f"🔍 Engine created: {engine is not None}")
     from app.models.user import User
     from app.models.model import Model
     from app.models.file import File
@@ -126,7 +128,10 @@ async def test_endpoint():
         "message": "API is working!",
         "cors_origins": ["*"],
         "has_database": HAS_DATABASE and engine is not None,
-        "database_url_configured": bool(os.getenv("DATABASE_URL"))
+        "database_url_configured": bool(os.getenv("DATABASE_URL")),
+        "database_url_from_env": os.getenv("DATABASE_URL", "NOT_SET"),
+        "database_url_from_settings": getattr(settings, 'DATABASE_URL', 'NOT_SET') if 'settings' in globals() else 'NOT_IMPORTED',
+        "engine_available": engine is not None if 'engine' in globals() else False
     }
 
 

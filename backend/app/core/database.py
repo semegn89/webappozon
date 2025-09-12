@@ -12,7 +12,7 @@ from app.core.config import settings
 engine = None
 AsyncSessionLocal = None
 
-if settings.DATABASE_URL and not settings.DATABASE_URL.startswith("postgresql://user:password"):
+if settings.DATABASE_URL and settings.DATABASE_URL != "postgresql://user:password@localhost:5432/telegram_mini_app":
     try:
         engine = create_async_engine(
             settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://"),
