@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import asyncio
 import asyncpg
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from contextlib import asynccontextmanager
 
 # Глобальная переменная для подключения к БД
@@ -22,6 +24,10 @@ async def lifespan(app: FastAPI):
     
     # Подключение к базе данных
     database_url = os.getenv("DATABASE_URL")
+    print(f"🔍 DATABASE_URL from env: {database_url}")
+    print(f"🔍 DATABASE_URL exists: {database_url is not None}")
+    print(f"🔍 DATABASE_URL length: {len(database_url) if database_url else 0}")
+    
     if database_url and not database_url.startswith("postgresql://user:password"):
         try:
             # Убираем channel_binding=require и заменяем sslmode=require на sslmode=prefer
