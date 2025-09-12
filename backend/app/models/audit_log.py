@@ -40,7 +40,7 @@ class AuditLog(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Связи
-    actor = relationship("User", back_populates="audit_logs")
+    # actor = relationship("User", back_populates="audit_logs")  # Временно отключено
 
     def __repr__(self):
         return f"<AuditLog(id={self.id}, actor_id={self.actor_id}, action={self.action})>"

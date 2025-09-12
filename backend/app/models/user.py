@@ -35,7 +35,7 @@ class User(Base):
     tickets = relationship("Ticket", back_populates="user", foreign_keys="[Ticket.user_id]")
     ticket_messages = relationship("TicketMessage", back_populates="author")
     assigned_tickets = relationship("Ticket", back_populates="assignee", foreign_keys="[Ticket.assignee_id]")
-    audit_logs = relationship("AuditLog", back_populates="actor")
+    # audit_logs = relationship("AuditLog", back_populates="actor")  # Временно отключено
 
     def __repr__(self):
         return f"<User(id={self.id}, telegram_user_id={self.telegram_user_id}, username={self.username})>"
