@@ -2,9 +2,9 @@ import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { 
-  Settings, Users, Package, Ticket, BarChart3, Plus, 
+  Users, Package, Ticket, BarChart3, Plus, 
   TrendingUp, Eye, Download, MessageSquare, Calendar,
-  CheckCircle, Filter, Search, Edit, Trash2, Upload
+  CheckCircle, Search, Edit, Trash2, Upload
 } from 'lucide-react'
 import { adminApi, modelsApi, ticketsApi } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
