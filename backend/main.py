@@ -51,15 +51,25 @@ async def test_endpoint():
 
 # Базовые эндпоинты для фронтенда
 @app.post("/api/v1/auth/verify")
+@app.options("/api/v1/auth/verify")
 async def verify_auth():
     """Простая проверка аутентификации"""
     return {
-        "success": True,
-        "message": "Authentication successful",
+        "token": {
+            "access_token": "test_token_12345",
+            "token_type": "bearer"
+        },
         "user": {
             "id": 1,
+            "telegram_user_id": 123456789,
             "username": "test_user",
-            "role": "user"
+            "first_name": "Test",
+            "last_name": "User",
+            "language_code": "ru",
+            "role": "user",
+            "is_blocked": False,
+            "full_name": "Test User",
+            "is_admin": False
         }
     }
 
@@ -82,6 +92,22 @@ async def get_tickets():
     """Получить список тикетов"""
     return {
         "tickets": []
+    }
+
+@app.get("/api/v1/auth/me")
+async def get_current_user():
+    """Получить информацию о текущем пользователе"""
+    return {
+        "id": 1,
+        "telegram_user_id": 123456789,
+        "username": "test_user",
+        "first_name": "Test",
+        "last_name": "User",
+        "language_code": "ru",
+        "role": "user",
+        "is_blocked": False,
+        "full_name": "Test User",
+        "is_admin": False
     }
 
 if __name__ == "__main__":
