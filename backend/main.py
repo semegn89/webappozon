@@ -14,6 +14,40 @@ from contextlib import asynccontextmanager
 # Глобальная переменная для подключения к БД
 db_pool = None
 
+async def get_db_pool():
+    """Получить подключение к базе данных (lazy loading)"""
+    global db_pool
+    
+    if db_pool is not None:
+        return db_pool
+    
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url or database_url.startswith("postgresql://user:password"):
+        return None
+    
+    try:
+        # Убираем channel_binding=require и заменяем sslmode=require на sslmode=prefer
+        clean_url = database_url.replace("&channel_binding=require", "").replace("sslmode=require", "sslmode=prefer")
+        print(f"🔍 Connecting to database: {clean_url}")
+        
+        db_pool = await asyncpg.create_pool(clean_url, min_size=1, max_size=10)
+        print("✅ Database connected")
+        
+        # Создаем таблицы
+        try:
+            await create_tables()
+            print("✅ Tables created")
+        except Exception as e:
+            print(f"⚠️ Error creating tables: {e}")
+        
+        return db_pool
+        
+    except Exception as e:
+        print(f"⚠️ Database connection failed: {e}")
+        print(f"⚠️ Error type: {type(e)}")
+        print(f"⚠️ Error details: {str(e)}")
+        return None
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Управление жизненным циклом приложения"""
@@ -159,13 +193,14 @@ async def health_check():
 async def test_endpoint():
     """Тестовый endpoint для проверки работы API"""
     print("🔍 Test endpoint called")
-    print(f"🔍 db_pool is None: {db_pool is None}")
-    print(f"🔍 DATABASE_URL exists: {bool(os.getenv('DATABASE_URL'))}")
+    
+    # Используем lazy loading для подключения к базе данных
+    current_db_pool = await get_db_pool()
     
     return {
         "message": "API is working!",
         "cors_origins": ["*"],
-        "has_database": db_pool is not None,
+        "has_database": current_db_pool is not None,
         "database_url_configured": bool(os.getenv("DATABASE_URL")),
         "database_url_from_env": os.getenv("DATABASE_URL", "NOT_SET")[:50] + "..." if os.getenv("DATABASE_URL") else "NOT_SET"
     }
