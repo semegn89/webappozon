@@ -16,7 +16,7 @@ HAS_DATABASE = False
 try:
     from app.core.config import settings
     print(f"🔍 DATABASE_URL from settings: {settings.DATABASE_URL}")
-    from app.core.database import engine, Base, get_db
+    from app.core.database import engine, Base, get_db, AsyncSessionLocal
     print(f"🔍 Engine created: {engine is not None}")
     from app.models.user import User
     from app.models.model import Model
