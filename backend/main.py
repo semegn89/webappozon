@@ -51,6 +51,28 @@ async def lifespan(app: FastAPI):
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
             print("✅ Database tables created")
+            
+            # Добавляем тестовые данные если таблицы пустые
+            async with AsyncSessionLocal() as session:
+                # Проверяем есть ли модели
+                result = await session.execute(select(Model))
+                models_count = len(result.scalars().all())
+                
+                if models_count == 0:
+                    print("📝 Adding sample data...")
+                    # Добавляем тестовую модель
+                    sample_model = Model(
+                        name="Sample Model",
+                        description="This is a sample model added automatically",
+                        category="sample",
+                        is_active=True
+                    )
+                    session.add(sample_model)
+                    await session.commit()
+                    print("✅ Sample model added")
+                else:
+                    print(f"📊 Found {models_count} existing models")
+                    
         except Exception as e:
             print(f"⚠️ Database connection failed: {e}")
             print("🔄 Running without database...")
@@ -183,65 +205,127 @@ async def get_current_user():
 @app.get("/api/v1/models")
 async def get_models():
     """Получить список моделей"""
-    if HAS_DATABASE and engine is not None:
-        try:
-            # Здесь будет код для получения моделей из базы данных
-            # Пока возвращаем mock данные
-            pass
-        except Exception as e:
-            print(f"Database error: {e}")
+    if not HAS_DATABASE:
+        # Mock данные если база недоступна
+        return {
+            "models": [
+                {
+                    "id": 1,
+                    "name": "Test Model 1",
+                    "description": "Test model for demo purposes",
+                    "category": "test",
+                    "created_at": "2024-01-01T00:00:00Z",
+                    "updated_at": "2024-01-01T00:00:00Z"
+                }
+            ]
+        }
     
-    # Mock данные
-    return {
-        "models": [
-            {
-                "id": 1,
-                "name": "Test Model 1",
-                "description": "Test model for demo purposes",
-                "category": "test",
-                "created_at": "2024-01-01T00:00:00Z",
-                "updated_at": "2024-01-01T00:00:00Z"
-            },
-            {
-                "id": 2,
-                "name": "Test Model 2",
-                "description": "Another test model",
-                "category": "demo",
-                "created_at": "2024-01-01T00:00:00Z",
-                "updated_at": "2024-01-01T00:00:00Z"
+    try:
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(Model).where(Model.is_active == True))
+            models = result.scalars().all()
+            
+            return {
+                "models": [
+                    {
+                        "id": model.id,
+                        "name": model.name,
+                        "description": model.description,
+                        "category": model.category,
+                        "created_at": model.created_at.isoformat() if model.created_at else None,
+                        "updated_at": model.updated_at.isoformat() if model.updated_at else None
+                    }
+                    for model in models
+                ]
             }
-        ]
-    }
+    except Exception as e:
+        print(f"⚠️ Error getting models: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get models: {str(e)}")
+
+
+@app.post("/api/v1/models")
+async def create_model(model_data: dict):
+    """Создать новую модель"""
+    if not HAS_DATABASE:
+        raise HTTPException(status_code=503, detail="Database not available")
+    
+    try:
+        async with AsyncSessionLocal() as session:
+            new_model = Model(
+                name=model_data.get("name", "New Model"),
+                description=model_data.get("description", ""),
+                category=model_data.get("category", "general"),
+                is_active=True
+            )
+            session.add(new_model)
+            await session.commit()
+            await session.refresh(new_model)
+            
+            return {
+                "id": new_model.id,
+                "name": new_model.name,
+                "description": new_model.description,
+                "category": new_model.category,
+                "created_at": new_model.created_at.isoformat() if new_model.created_at else None,
+                "updated_at": new_model.updated_at.isoformat() if new_model.updated_at else None
+            }
+    except Exception as e:
+        print(f"⚠️ Error creating model: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create model: {str(e)}")
 
 
 @app.get("/api/v1/models/{model_id}")
 async def get_model(model_id: int):
     """Получить модель по ID"""
-    if HAS_DATABASE and engine is not None:
-        try:
-            # Здесь будет код для получения модели из базы данных
-            pass
-        except Exception as e:
-            print(f"Database error: {e}")
+    if not HAS_DATABASE:
+        # Mock данные если база недоступна
+        return {
+            "id": model_id,
+            "name": f"Test Model {model_id}",
+            "description": f"Test model {model_id} for demo purposes",
+            "category": "test",
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+            "files": []
+        }
     
-    # Mock данные
-    return {
-        "id": model_id,
-        "name": f"Test Model {model_id}",
-        "description": f"Test model {model_id} for demo purposes",
-        "category": "test",
-        "created_at": "2024-01-01T00:00:00Z",
-        "updated_at": "2024-01-01T00:00:00Z",
-        "files": [
-            {
-                "id": 1,
-                "name": "instruction.pdf",
-                "type": "pdf",
-                "size": 1024000,
-                "url": "/api/v1/files/1/download"
+    try:
+        async with AsyncSessionLocal() as session:
+            # Получаем модель
+            result = await session.execute(select(Model).where(Model.id == model_id))
+            model = result.scalar_one_or_none()
+            
+            if not model:
+                raise HTTPException(status_code=404, detail="Model not found")
+            
+            # Получаем файлы модели
+            files_result = await session.execute(select(File).where(File.model_id == model_id))
+            files = files_result.scalars().all()
+            
+            return {
+                "id": model.id,
+                "name": model.name,
+                "description": model.description,
+                "category": model.category,
+                "created_at": model.created_at.isoformat() if model.created_at else None,
+                "updated_at": model.updated_at.isoformat() if model.updated_at else None,
+                "files": [
+                    {
+                        "id": file.id,
+                        "name": file.name,
+                        "file_type": file.file_type,
+                        "url": file.url,
+                        "size": file.size,
+                        "created_at": file.created_at.isoformat() if file.created_at else None
+                    }
+                    for file in files
+                ]
             }
-        ]
-    }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"⚠️ Error getting model: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get model: {str(e)}")
 
 
 # ===== FILES ENDPOINTS =====
@@ -286,27 +370,44 @@ async def download_file(file_id: int):
 @app.get("/api/v1/tickets")
 async def get_tickets():
     """Получить список тикетов"""
-    if HAS_DATABASE and engine is not None:
-        try:
-            # Здесь будет код для получения тикетов из базы данных
-            pass
-        except Exception as e:
-            print(f"Database error: {e}")
+    if not HAS_DATABASE:
+        # Mock данные если база недоступна
+        return {
+            "tickets": [
+                {
+                    "id": 1,
+                    "subject": "Test Ticket",
+                    "description": "This is a test ticket",
+                    "status": "open",
+                    "priority": "normal",
+                    "created_at": "2024-01-01T00:00:00Z",
+                    "updated_at": "2024-01-01T00:00:00Z"
+                }
+            ]
+        }
     
-    # Mock данные
-    return {
-        "tickets": [
-            {
-                "id": 1,
-                "subject": "Test Ticket",
-                "description": "This is a test ticket",
-                "status": "open",
-                "priority": "normal",
-                "created_at": "2024-01-01T00:00:00Z",
-                "updated_at": "2024-01-01T00:00:00Z"
+    try:
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(Ticket))
+            tickets = result.scalars().all()
+            
+            return {
+                "tickets": [
+                    {
+                        "id": ticket.id,
+                        "subject": ticket.subject,
+                        "description": ticket.description,
+                        "status": ticket.status,
+                        "priority": ticket.priority,
+                        "created_at": ticket.created_at.isoformat() if ticket.created_at else None,
+                        "updated_at": ticket.updated_at.isoformat() if ticket.updated_at else None
+                    }
+                    for ticket in tickets
+                ]
             }
-        ]
-    }
+    except Exception as e:
+        print(f"⚠️ Error getting tickets: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get tickets: {str(e)}")
 
 
 @app.post("/api/v1/tickets")
