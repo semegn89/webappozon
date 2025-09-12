@@ -14,7 +14,7 @@ const Admin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'models' | 'tickets' | 'users'>('dashboard')
 
   // Получаем статистику
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { isLoading: statsLoading } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: adminApi.getAdminStats
   })
