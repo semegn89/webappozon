@@ -1,7 +1,7 @@
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Home, Package, Ticket, Settings, User } from 'lucide-react'
+import { Home, Package, Ticket, Settings } from 'lucide-react'
 
 const Navigation: React.FC = () => {
   const location = useLocation()

@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { WebApp } from '@twa-dev/sdk'
 
 interface TelegramContextType {
-  webApp: WebApp | null
+  webApp: any | null
   user: any | null
   initData: string | null
   isReady: boolean
@@ -28,7 +27,7 @@ interface TelegramProviderProps {
 }
 
 export const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
-  const [webApp, setWebApp] = useState<WebApp | null>(null)
+  const [webApp, setWebApp] = useState<any | null>(null)
   const [user, setUser] = useState<any | null>(null)
   const [initData, setInitData] = useState<string | null>(null)
   const [isReady, setIsReady] = useState(false)
