@@ -80,7 +80,7 @@ const Home: React.FC = () => {
       <div className="hero-section">
         <div className="hero-content">
           <h1 className="hero-title">
-            Добро пожаловать, <span className="gradient-text">{user?.first_name || 'Пользователь'}</span>!
+            Добро пожаловать, <span className="gradient-text">{user?.first_name || 'Пользователь'}</span>! ✨
           </h1>
           <p className="hero-subtitle">
             Добро пожаловать в ваш персональный кабинет. Здесь вы можете найти модели, 
