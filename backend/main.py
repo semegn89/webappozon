@@ -49,6 +49,41 @@ async def test_endpoint():
         "debug": os.getenv("DEBUG", "true")
     }
 
+# Базовые эндпоинты для фронтенда
+@app.post("/api/v1/auth/verify")
+async def verify_auth():
+    """Простая проверка аутентификации"""
+    return {
+        "success": True,
+        "message": "Authentication successful",
+        "user": {
+            "id": 1,
+            "username": "test_user",
+            "role": "user"
+        }
+    }
+
+@app.get("/api/v1/models")
+async def get_models():
+    """Получить список моделей"""
+    return {
+        "models": [
+            {
+                "id": 1,
+                "name": "Test Model",
+                "description": "Test model for demo",
+                "category": "test"
+            }
+        ]
+    }
+
+@app.get("/api/v1/tickets")
+async def get_tickets():
+    """Получить список тикетов"""
+    return {
+        "tickets": []
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
