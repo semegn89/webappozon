@@ -5,7 +5,7 @@
   "installCommand": "npm install",
   "devCommand": "npm run dev",
   "env": {
-    "VITE_API_URL": "https://gakshop.com/api/v1",
+    "VITE_API_URL": "https://api.gakshop.com/api/v1",
     "VITE_TELEGRAM_WEBAPP_URL": "https://gakshop.com",
     "VITE_ENVIRONMENT": "production"
   }

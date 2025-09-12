@@ -20,10 +20,10 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://user:password@localhost:5432/telegram_mini_app"
     
     # Telegram
-    TELEGRAM_BOT_TOKEN: str = ""
+    TELEGRAM_BOT_TOKEN: str = "7870121478:AAGtGNo-Hrx3Ox4OZsbuqZniexzeR_tl47w"
     TELEGRAM_WEBHOOK_URL: str = ""
-    TELEGRAM_WEBAPP_URL: str = ""
-    TELEGRAM_BOT_USERNAME: str = ""
+    TELEGRAM_WEBAPP_URL: str = "https://gakshop.com"
+    TELEGRAM_BOT_USERNAME: str = "SAGShop_bot"
     
     # Безопасность
     SECRET_KEY: str = "your-secret-key-change-in-production"
