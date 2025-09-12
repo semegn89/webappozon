@@ -167,11 +167,14 @@ async def test_endpoint():
             try:
                 clean_url = database_url.replace("&channel_binding=require", "").replace("sslmode=require", "sslmode=prefer")
                 print(f"🔍 Connecting to: {clean_url}")
-                global db_pool
-                db_pool = await asyncpg.create_pool(clean_url, min_size=1, max_size=10)
+                # Убираем global - используем локальную переменную
+                temp_pool = await asyncpg.create_pool(clean_url, min_size=1, max_size=10)
                 print("✅ Database connected from test endpoint")
                 await create_tables()
                 print("✅ Tables created from test endpoint")
+                # Обновляем глобальную переменную
+                global db_pool
+                db_pool = temp_pool
             except Exception as e:
                 print(f"⚠️ Database connection failed from test endpoint: {e}")
                 print(f"⚠️ Error type: {type(e)}")
