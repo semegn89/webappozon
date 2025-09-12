@@ -40,8 +40,11 @@ async def lifespan(app: FastAPI):
             print("✅ Database connected")
             
             # Создаем таблицы
-            await create_tables()
-            print("✅ Tables created")
+            try:
+                await create_tables()
+                print("✅ Tables created")
+            except Exception as e:
+                print(f"⚠️ Error creating tables: {e}")
             
         except Exception as e:
             print(f"⚠️ Database connection failed: {e}")
@@ -158,27 +161,6 @@ async def test_endpoint():
     print("🔍 Test endpoint called")
     print(f"🔍 db_pool is None: {db_pool is None}")
     print(f"🔍 DATABASE_URL exists: {bool(os.getenv('DATABASE_URL'))}")
-    
-    # Попробуем подключиться к базе данных
-    if db_pool is None:
-        print("🔍 Attempting database connection...")
-        database_url = os.getenv("DATABASE_URL")
-        if database_url and not database_url.startswith("postgresql://user:password"):
-            try:
-                clean_url = database_url.replace("&channel_binding=require", "").replace("sslmode=require", "sslmode=prefer")
-                print(f"🔍 Connecting to: {clean_url}")
-                # Убираем global - используем локальную переменную
-                temp_pool = await asyncpg.create_pool(clean_url, min_size=1, max_size=10)
-                print("✅ Database connected from test endpoint")
-                await create_tables()
-                print("✅ Tables created from test endpoint")
-                # Обновляем глобальную переменную
-                global db_pool
-                db_pool = temp_pool
-            except Exception as e:
-                print(f"⚠️ Database connection failed from test endpoint: {e}")
-                print(f"⚠️ Error type: {type(e)}")
-                print(f"⚠️ Error details: {str(e)}")
     
     return {
         "message": "API is working!",
