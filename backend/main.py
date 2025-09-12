@@ -54,25 +54,29 @@ async def lifespan(app: FastAPI):
             print("✅ Database tables created")
             
             # Добавляем тестовые данные если таблицы пустые
-            async with AsyncSessionLocal() as session:
-                # Проверяем есть ли модели
-                result = await session.execute(select(Model))
-                models_count = len(result.scalars().all())
-                
-                if models_count == 0:
-                    print("📝 Adding sample data...")
-                    # Добавляем тестовую модель
-                    sample_model = Model(
-                        name="Sample Model",
-                        description="This is a sample model added automatically",
-                        category="sample",
-                        is_active=True
-                    )
-                    session.add(sample_model)
-                    await session.commit()
-                    print("✅ Sample model added")
-                else:
-                    print(f"📊 Found {models_count} existing models")
+            try:
+                async with AsyncSessionLocal() as session:
+                    # Проверяем есть ли модели
+                    result = await session.execute(select(Model))
+                    models_count = len(result.scalars().all())
+                    
+                    if models_count == 0:
+                        print("📝 Adding sample data...")
+                        # Добавляем тестовую модель
+                        sample_model = Model(
+                            name="Sample Model",
+                            description="This is a sample model added automatically",
+                            category="sample",
+                            is_active=True
+                        )
+                        session.add(sample_model)
+                        await session.commit()
+                        print("✅ Sample model added")
+                    else:
+                        print(f"📊 Found {models_count} existing models")
+            except Exception as e:
+                print(f"⚠️ Error adding sample data: {e}")
+                print("🔄 Continuing without sample data...")
                     
         except Exception as e:
             print(f"⚠️ Database connection failed: {e}")
@@ -222,23 +226,28 @@ async def get_models():
         }
     
     try:
-        async with AsyncSessionLocal() as session:
-            result = await session.execute(select(Model).where(Model.is_active == True))
-            models = result.scalars().all()
-            
-            return {
-                "models": [
-                    {
-                        "id": model.id,
-                        "name": model.name,
-                        "description": model.description,
-                        "category": model.category,
-                        "created_at": model.created_at.isoformat() if model.created_at else None,
-                        "updated_at": model.updated_at.isoformat() if model.updated_at else None
-                    }
-                    for model in models
-                ]
-            }
+        # Используем dependency для получения сессии
+        async def get_models_from_db():
+            async with AsyncSessionLocal() as session:
+                result = await session.execute(select(Model).where(Model.is_active == True))
+                models = result.scalars().all()
+                return models
+        
+        models = await get_models_from_db()
+        
+        return {
+            "models": [
+                {
+                    "id": model.id,
+                    "name": model.name,
+                    "description": model.description,
+                    "category": model.category,
+                    "created_at": model.created_at.isoformat() if model.created_at else None,
+                    "updated_at": model.updated_at.isoformat() if model.updated_at else None
+                }
+                for model in models
+            ]
+        }
     except Exception as e:
         print(f"⚠️ Error getting models: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get models: {str(e)}")
