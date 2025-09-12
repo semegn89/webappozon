@@ -150,7 +150,7 @@ const Admin: React.FC = () => {
             
             {modelsData?.items && modelsData.items.length > 0 ? (
               <div className="list">
-                {modelsData.items.map((model) => (
+                {modelsData.items.map((model: any) => (
                   <div key={model.id} className="list-item">
                     <div className="list-item-header">
                       <div>
@@ -191,7 +191,7 @@ const Admin: React.FC = () => {
             
             {ticketsData?.items && ticketsData.items.length > 0 ? (
               <div className="list">
-                {ticketsData.items.map((ticket) => (
+                {ticketsData.items.map((ticket: any) => (
                   <div key={ticket.id} className="list-item">
                     <div className="list-item-header">
                       <div>
