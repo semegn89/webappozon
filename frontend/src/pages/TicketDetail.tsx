@@ -202,7 +202,7 @@ const TicketDetail: React.FC = () => {
         )}
 
         {/* Форма отправки сообщения */}
-        {ticket.is_open && (
+        {(ticket.status === 'open' || ticket.status === 'new' || ticket.status === 'pending') && (
           <form onSubmit={handleSendMessage}>
             <div className="form-group">
               <textarea
@@ -230,7 +230,7 @@ const TicketDetail: React.FC = () => {
           </form>
         )}
 
-        {!ticket.is_open && (
+        {(ticket.status === 'closed' || ticket.status === 'resolved') && (
           <div style={{ padding: '16px', backgroundColor: 'var(--tg-theme-secondary-bg-color)', borderRadius: '8px', textAlign: 'center' }}>
             <p>Тикет закрыт. Новые сообщения отправлять нельзя.</p>
           </div>
