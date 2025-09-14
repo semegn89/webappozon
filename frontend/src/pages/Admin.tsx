@@ -206,42 +206,49 @@ const Admin: React.FC = () => {
   )
 
   // Карточка тикета
-  const TicketCard = ({ ticket }: any) => (
-    <div className="admin-card ticket-card">
-      <div className="ticket-card-header">
-        <div className="ticket-card-info">
-          <div className={`ticket-icon ${ticket.status}`}>
-            <Ticket size={20} />
+  const TicketCard = ({ ticket }: any) => {
+    const handleTicketClick = () => {
+      // Открываем тикет в новой вкладке
+      window.open(`/tickets/${ticket.id}`, '_blank')
+    }
+
+    return (
+      <div className="admin-card ticket-card" onClick={handleTicketClick} style={{ cursor: 'pointer' }}>
+        <div className="ticket-card-header">
+          <div className="ticket-card-info">
+            <div className={`ticket-icon ${ticket.status}`}>
+              <Ticket size={20} />
+            </div>
+            <div>
+              <h3 className="ticket-title">{ticket.subject}</h3>
+              <p className="ticket-priority">Приоритет: {ticket.priority}</p>
+            </div>
           </div>
-          <div>
-            <h3 className="ticket-title">{ticket.subject}</h3>
-            <p className="ticket-priority">Приоритет: {ticket.priority}</p>
+          <div className="ticket-actions">
+            <button className="action-btn message-btn" onClick={(e) => { e.stopPropagation(); handleTicketClick(); }}>
+              <MessageSquare size={16} />
+            </button>
+            <button className="action-btn check-btn" onClick={(e) => e.stopPropagation()}>
+              <CheckCircle size={16} />
+            </button>
           </div>
         </div>
-        <div className="ticket-actions">
-          <button className="action-btn message-btn">
-            <MessageSquare size={16} />
-          </button>
-          <button className="action-btn check-btn">
-            <CheckCircle size={16} />
-          </button>
+        <p className="ticket-description">{ticket.description}</p>
+        <div className="ticket-footer">
+          <div className="ticket-date">
+            <Calendar size={16} />
+            <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+          </div>
+          <span className={`status-badge status-${ticket.status}`}>
+            {ticket.status === 'open' && 'Открыт'}
+            {ticket.status === 'in_progress' && 'В работе'}
+            {ticket.status === 'resolved' && 'Решен'}
+            {ticket.status === 'closed' && 'Закрыт'}
+          </span>
         </div>
       </div>
-      <p className="ticket-description">{ticket.description}</p>
-      <div className="ticket-footer">
-        <div className="ticket-date">
-          <Calendar size={16} />
-          <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
-        </div>
-        <span className={`status-badge status-${ticket.status}`}>
-          {ticket.status === 'open' && 'Открыт'}
-          {ticket.status === 'in_progress' && 'В работе'}
-          {ticket.status === 'resolved' && 'Решен'}
-          {ticket.status === 'closed' && 'Закрыт'}
-        </span>
-      </div>
-    </div>
-  )
+    )
+  }
 
 
   return (
