@@ -62,6 +62,29 @@ async def test_endpoint():
 
 # ===== AUTH ENDPOINTS =====
 
+@app.post("/api/v1/auth/verify")
+@app.options("/api/v1/auth/verify")
+async def verify_auth():
+    """Проверка аутентификации через Telegram"""
+    return {
+        "token": {
+            "access_token": "test_token_12345",
+            "token_type": "bearer"
+        },
+        "user": {
+            "id": 1,
+            "telegram_user_id": 123456789,
+            "username": "test_user",
+            "first_name": "Test",
+            "last_name": "User",
+            "language_code": "ru",
+            "role": "user",
+            "is_blocked": False,
+            "full_name": "Test User",
+            "is_admin": False
+        }
+    }
+
 @app.get("/api/v1/auth/me")
 async def get_current_user():
     """Получить текущего пользователя"""
