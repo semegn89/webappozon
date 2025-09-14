@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Search, Filter, Package, FileText } from 'lucide-react'
+import { Search, Filter, Package, Eye, Download } from 'lucide-react'
 import { modelsApi } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
 
