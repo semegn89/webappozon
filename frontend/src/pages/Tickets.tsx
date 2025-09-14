@@ -66,7 +66,10 @@ const Tickets: React.FC = () => {
   if (isLoading) return <LoadingSpinner message="Загрузка тикетов..." />
   if (error) return <div className="error">Ошибка загрузки тикетов</div>
 
-  const tickets = data?.items || []
+  // Универсальная распаковка ответа API для тикетов
+  const ticketsRaw = data as any
+  const tickets: any[] =
+    (ticketsRaw?.items ?? ticketsRaw?.tickets ?? (Array.isArray(ticketsRaw) ? ticketsRaw : [])) as any[]
 
   return (
     <div className="container">

@@ -436,15 +436,24 @@ const Admin: React.FC = () => {
               </div>
             </div>
             <div className="tickets-list">
-              {ticketsData?.items?.map((ticket: any) => (
-                <TicketCard key={ticket.id} ticket={ticket} />
-              )) || (
-                <div className="empty-state">
-                  <Ticket size={48} color="#9ca3af" />
-                  <h3>Тикеты не найдены</h3>
-                  <p>Пока нет тикетов поддержки</p>
-                </div>
-              )}
+              {(() => {
+                // Универсальная распаковка ответа API для тикетов
+                const ticketsRaw = ticketsData as any
+                const tickets: any[] =
+                  (ticketsRaw?.items ?? ticketsRaw?.tickets ?? (Array.isArray(ticketsRaw) ? ticketsRaw : [])) as any[]
+                
+                return tickets.length > 0 ? (
+                  tickets.map((ticket: any) => (
+                    <TicketCard key={ticket.id} ticket={ticket} />
+                  ))
+                ) : (
+                  <div className="empty-state">
+                    <Ticket size={48} color="#9ca3af" />
+                    <h3>Тикеты не найдены</h3>
+                    <p>Пока нет тикетов поддержки</p>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         )}
