@@ -724,38 +724,41 @@ async def get_tickets():
 @app.post("/api/v1/tickets")
 async def create_ticket(ticket_data: dict):
     """Создать новый тикет"""
-    if not db_pool:
+    conn = await get_db_connection()
+    if not conn:
         raise HTTPException(status_code=503, detail="Database not available")
     
     try:
-        async with db_pool.acquire() as conn:
-            row = await conn.fetchrow("""
-                INSERT INTO tickets (user_id, model_id, subject, description, priority, status)
-                VALUES ($1, $2, $3, $4, $5, $6)
-                RETURNING id, user_id, model_id, subject, description, priority, status, created_at
-            """, 
-                ticket_data.get("user_id", 1),
-                ticket_data.get("model_id"),
-                ticket_data.get("subject", "New Ticket"),
-                ticket_data.get("description", ""),
-                ticket_data.get("priority", "normal"),
-                ticket_data.get("status", "open")
-            )
-            
-            return {
-                "id": row["id"],
-                "user_id": row["user_id"],
-                "model_id": row["model_id"],
-                "subject": row["subject"],
-                "description": row["description"],
-                "priority": row["priority"],
-                "status": row["status"],
-                "created_at": row["created_at"].isoformat() if row["created_at"] else None
-            }
-            
+        row = await conn.fetchrow("""
+            INSERT INTO tickets (user_id, model_id, subject, description, priority, status)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, user_id, model_id, subject, description, priority, status, created_at
+        """, 
+            ticket_data.get("user_id", 1),
+            ticket_data.get("model_id"),
+            ticket_data.get("subject", "New Ticket"),
+            ticket_data.get("description", ""),
+            ticket_data.get("priority", "normal"),
+            ticket_data.get("status", "open")
+        )
+        
+        return {
+            "id": row["id"],
+            "user_id": row["user_id"],
+            "model_id": row["model_id"],
+            "subject": row["subject"],
+            "description": row["description"],
+            "priority": row["priority"],
+            "status": row["status"],
+            "created_at": row["created_at"].isoformat() if row["created_at"] else None
+        }
+        
     except Exception as e:
         print(f"⚠️ Error creating ticket: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create ticket: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
 
 if __name__ == "__main__":
     import uvicorn
