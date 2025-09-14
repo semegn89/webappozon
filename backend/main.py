@@ -556,10 +556,10 @@ async def get_admin_stats():
     """Получить статистику для админ панели"""
     print("🔍 Admin stats endpoint called")
     
-    conn = await get_db_connection()
-    if not conn:
-        print("⚠️ No database connection")
-        # Mock данные если база недоступна
+    # Используем тот же подход, что и в endpoint моделей
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url or database_url.startswith("postgresql://user:password"):
+        print("⚠️ No database configured")
         return {
             "total_models": 0,
             "active_tickets": 0,
@@ -569,6 +569,10 @@ async def get_admin_stats():
     
     try:
         print("🔍 Getting statistics from database")
+        # Убираем channel_binding=require и заменяем sslmode=require на sslmode=prefer
+        clean_url = database_url.replace("&channel_binding=require", "").replace("sslmode=require", "sslmode=prefer")
+        conn = await asyncpg.connect(clean_url)
+        
         # Получаем статистику
         models_count = await conn.fetchval("SELECT COUNT(*) FROM models")
         active_tickets = await conn.fetchval("SELECT COUNT(*) FROM tickets WHERE status = 'open'")
@@ -577,6 +581,8 @@ async def get_admin_stats():
         print(f"🔍 Models count: {models_count}")
         print(f"🔍 Tickets count: {active_tickets}")
         print(f"🔍 Users count: {users_count}")
+        
+        await conn.close()
         
         return {
             "total_models": models_count or 0,
@@ -593,9 +599,6 @@ async def get_admin_stats():
             "total_users": 0,
             "total_downloads": 1234
         }
-    finally:
-        if conn:
-            await conn.close()
 
 # ===== USERS ENDPOINTS =====
 
