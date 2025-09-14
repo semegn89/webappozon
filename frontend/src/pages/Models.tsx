@@ -147,40 +147,55 @@ const Models: React.FC = () => {
             <p>Найдено моделей: {data?.total || 0}</p>
           </div>
 
-          <div className="list">
+          <div className="models-grid">
             {models.map((model: any) => (
               <div 
                 key={model.id} 
-                className="list-item"
+                className="model-card"
                 onClick={() => navigate(`/models/${model.id}`)}
               >
-                <div className="list-item-header">
-                  <div>
-                    <div className="list-item-title">{model.name}</div>
-                    <div className="list-item-subtitle">
-                      {model.brand && `${model.brand} • `}
-                      {model.code}
-                      {model.year_range && ` • ${model.year_range}`}
-                    </div>
-                    {model.description && (
-                      <div className="list-item-meta" style={{ marginTop: '4px' }}>
-                        {model.description.length > 100 
-                          ? `${model.description.substring(0, 100)}...` 
-                          : model.description
-                        }
-                      </div>
-                    )}
+                <div className="model-card-header">
+                  <div className="model-icon">
+                    <Package size={24} color="#3b82f6" />
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                    {model.has_files && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#2481cc' }}>
-                        <FileText size={14} />
-                        <span style={{ fontSize: '12px' }}>Есть файлы</span>
-                      </div>
-                    )}
-                    <div className="list-item-meta">
-                      {new Date(model.created_at).toLocaleDateString('ru-RU')}
+                  <div className="model-status">
+                    <span className={`status-badge ${model.is_active ? 'status-active' : 'status-blocked'}`}>
+                      {model.is_active ? 'Активна' : 'Неактивна'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="model-card-content">
+                  <h3 className="model-title">{model.name}</h3>
+                  <p className="model-category">
+                    {model.brand && `${model.brand} • `}
+                    {model.category}
+                  </p>
+                  <p className="model-code">Код: {model.code}</p>
+                  
+                  {model.description && (
+                    <p className="model-description">
+                      {model.description.length > 80 
+                        ? `${model.description.substring(0, 80)}...` 
+                        : model.description
+                      }
+                    </p>
+                  )}
+                </div>
+                
+                <div className="model-card-footer">
+                  <div className="model-stats">
+                    <div className="model-stat">
+                      <Eye size={16} />
+                      <span>0 просмотров</span>
                     </div>
+                    <div className="model-stat">
+                      <Download size={16} />
+                      <span>0 загрузок</span>
+                    </div>
+                  </div>
+                  <div className="model-date">
+                    {new Date(model.created_at).toLocaleDateString('ru-RU')}
                   </div>
                 </div>
               </div>

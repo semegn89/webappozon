@@ -1,10 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { 
   Users, Package, Ticket, BarChart3, Plus, 
   TrendingUp, Eye, Download, MessageSquare, Calendar,
-  CheckCircle, Search, Edit, Trash2, Upload
+  CheckCircle, Search, Edit, Trash2, Upload, Lock
 } from 'lucide-react'
 import { adminApi, modelsApi, ticketsApi } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -13,9 +13,11 @@ import ModelForm from '../components/ModelForm'
 const Admin: React.FC = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'models' | 'tickets' | 'users'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'models' | 'tickets'>('dashboard')
   const [isModelFormOpen, setIsModelFormOpen] = useState(false)
   const [editingModel, setEditingModel] = useState<any>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [password, setPassword] = useState('')
 
   // Получаем статистику
   const { data: statsData, isLoading: statsLoading } = useQuery({
@@ -37,12 +39,6 @@ const Admin: React.FC = () => {
     enabled: activeTab === 'tickets'
   })
 
-  // Получаем пользователей
-  const { data: usersData } = useQuery({
-    queryKey: ['admin-users'],
-    queryFn: () => adminApi.getUsers({ page: 1, page_size: 10 }),
-    enabled: activeTab === 'users'
-  })
 
   // Мутация для удаления модели
   const deleteModelMutation = useMutation({
@@ -56,8 +52,7 @@ const Admin: React.FC = () => {
   const tabs = [
     { id: 'dashboard', label: 'Дашборд', icon: BarChart3, color: '#3b82f6' },
     { id: 'models', label: 'Модели', icon: Package, color: '#10b981' },
-    { id: 'tickets', label: 'Тикеты', icon: Ticket, color: '#f59e0b' },
-    { id: 'users', label: 'Пользователи', icon: Users, color: '#8b5cf6' }
+    { id: 'tickets', label: 'Тикеты', icon: Ticket, color: '#f59e0b' }
   ]
 
   // Функции для работы с моделями
@@ -81,6 +76,60 @@ const Admin: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-models'] })
     queryClient.invalidateQueries({ queryKey: ['models'] })
     setActiveTab('models') // переключаем на вкладку моделей
+  }
+
+  // Проверка аутентификации
+  useEffect(() => {
+    const adminAuth = localStorage.getItem('admin_auth')
+    if (adminAuth === 'true') {
+      setIsAuthenticated(true)
+    }
+  }, [])
+
+  const handleLogin = () => {
+    // Простая защита паролем
+    if (password === 'admin123') {
+      setIsAuthenticated(true)
+      localStorage.setItem('admin_auth', 'true')
+    } else {
+      alert('Неверный пароль!')
+    }
+  }
+
+  const handleLogout = () => {
+    setIsAuthenticated(false)
+    localStorage.removeItem('admin_auth')
+  }
+
+  // Если не аутентифицирован, показываем форму входа
+  if (!isAuthenticated) {
+    return (
+      <div className="admin-login">
+        <div className="login-card">
+          <div className="login-header">
+            <Lock size={48} color="#3b82f6" />
+            <h1>Админ Панель</h1>
+            <p>Введите пароль для доступа</p>
+          </div>
+          <div className="login-form">
+            <input
+              type="password"
+              placeholder="Пароль"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+              className="login-input"
+            />
+            <button onClick={handleLogin} className="login-btn">
+              Войти
+            </button>
+          </div>
+          <button onClick={() => navigate('/')} className="back-btn">
+            ← Вернуться в приложение
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (statsLoading) return <LoadingSpinner message="Загрузка админ-панели..." />
@@ -194,40 +243,6 @@ const Admin: React.FC = () => {
     </div>
   )
 
-  // Карточка пользователя
-  const UserCard = ({ user }: any) => (
-    <div className="admin-card user-card">
-      <div className="user-card-header">
-        <div className="user-avatar">
-          <Users size={20} color="#8b5cf6" />
-        </div>
-        <div className="user-info">
-          <h3 className="user-name">{user.full_name}</h3>
-          <p className="user-username">@{user.username || 'без username'}</p>
-        </div>
-        <div className="user-actions">
-          <button className="action-btn edit-btn">
-            <Edit size={16} />
-          </button>
-        </div>
-      </div>
-      <div className="user-footer">
-        <div className="user-stats">
-          <div className="user-stat">
-            <Ticket size={16} />
-            <span>0 тикетов</span>
-          </div>
-          <div className="user-stat">
-            <Calendar size={16} />
-            <span>{new Date(user.created_at).toLocaleDateString()}</span>
-          </div>
-        </div>
-        <span className={`status-badge ${user.is_blocked ? 'status-blocked' : 'status-active'}`}>
-          {user.is_blocked ? 'Заблокирован' : 'Активен'}
-        </span>
-      </div>
-    </div>
-  )
 
   return (
     <div className="admin-container">
@@ -236,12 +251,20 @@ const Admin: React.FC = () => {
         <div className="admin-header-content">
           <h1 className="admin-title">Админ Кабинет</h1>
           <p className="admin-subtitle">Управление системой и контентом</p>
-          <button 
-            className="back-btn"
-            onClick={() => navigate('/')}
-          >
-            ← Вернуться в приложение
-          </button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button 
+              className="back-btn"
+              onClick={() => navigate('/')}
+            >
+              ← Вернуться в приложение
+            </button>
+            <button 
+              className="logout-btn"
+              onClick={handleLogout}
+            >
+              Выйти
+            </button>
+          </div>
         </div>
       </div>
 
@@ -283,9 +306,9 @@ const Admin: React.FC = () => {
                 trend="+5%"
               />
               <StatCard
-                title="Пользователей"
-                value={statsData?.total_users || 0}
-                icon={Users}
+                title="Всего файлов"
+                value={statsData?.total_files || 0}
+                icon={FileText}
                 color="#8b5cf6"
                 trend="+8%"
               />
@@ -419,28 +442,6 @@ const Admin: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'users' && (
-          <div className="users-content">
-            <div className="content-header">
-              <h2 className="section-title">Управление пользователями</h2>
-              <div className="user-search">
-                <Search size={20} color="#9ca3af" />
-                <input type="text" placeholder="Поиск пользователей..." />
-              </div>
-            </div>
-            <div className="users-list">
-              {usersData?.items?.map((user: any) => (
-                <UserCard key={user.id} user={user} />
-              )) || (
-                <div className="empty-state">
-                  <Users size={48} color="#9ca3af" />
-                  <h3>Пользователи не найдены</h3>
-                  <p>Пока нет зарегистрированных пользователей</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Модальное окно для создания/редактирования модели */}
