@@ -208,8 +208,8 @@ const Admin: React.FC = () => {
   // Карточка тикета
   const TicketCard = ({ ticket }: any) => {
     const handleTicketClick = () => {
-      // Открываем тикет в новой вкладке
-      window.open(`/tickets/${ticket.id}`, '_blank')
+      // Открываем тикет в админ режиме в новой вкладке
+      window.open(`/admin/tickets/${ticket.id}`, '_blank')
     }
 
     return (

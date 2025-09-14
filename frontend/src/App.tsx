@@ -24,6 +24,7 @@ function App() {
             <Route path="/tickets/:id" element={<TicketDetail />} />
             <Route path="/tickets/create" element={<CreateTicket />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/tickets/:id" element={<TicketDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>
