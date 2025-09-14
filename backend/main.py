@@ -57,7 +57,17 @@ async def get_db_connection():
     try:
         # Убираем channel_binding=require и заменяем sslmode=require на sslmode=prefer
         clean_url = database_url.replace("&channel_binding=require", "").replace("sslmode=require", "sslmode=prefer")
-        return await asyncpg.connect(clean_url)
+        
+        # Создаем новое соединение с таймаутами
+        conn = await asyncpg.connect(
+            clean_url,
+            command_timeout=30,
+            server_settings={
+                'application_name': 'webappozon',
+                'jit': 'off'
+            }
+        )
+        return conn
     except Exception as e:
         print(f"⚠️ Error creating connection: {e}")
         return None
@@ -451,21 +461,12 @@ async def create_model(model_data: dict):
 @app.get("/api/v1/models/{model_id}")
 async def get_model(model_id: int):
     """Получить модель по ID"""
-    if not db_pool:
-        # Mock данные если база недоступна
-        return {
-            "id": model_id,
-            "name": f"Test Model {model_id}",
-            "description": f"Test model {model_id} for demo purposes",
-            "category": "test",
-            "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-01T00:00:00Z",
-            "files": []
-        }
+    conn = await get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database not available")
     
     try:
-        async with db_pool.acquire() as conn:
-            row = await conn.fetchrow("""
+        row = await conn.fetchrow("""
                 SELECT id, name, code, brand, category, year_from, year_to, 
                        description, image_url, is_active, created_at, updated_at
                 FROM models 
@@ -496,6 +497,9 @@ async def get_model(model_id: int):
     except Exception as e:
         print(f"⚠️ Error getting model: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get model: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
 
 @app.put("/api/v1/models/{model_id}")
 async def update_model(model_id: int, model_data: dict):
