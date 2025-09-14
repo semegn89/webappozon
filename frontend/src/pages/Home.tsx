@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Package, Ticket, FileText, Search, Star } from 'lucide-react'
+import { Package, Ticket, FileText, Star } from 'lucide-react'
 import { modelsApi, ticketsApi } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 
