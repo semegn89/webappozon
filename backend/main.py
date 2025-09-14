@@ -554,8 +554,11 @@ async def delete_model(model_id: int):
 @app.get("/api/v1/admin/stats")
 async def get_admin_stats():
     """Получить статистику для админ панели"""
+    print("🔍 Admin stats endpoint called")
+    
     conn = await get_db_connection()
     if not conn:
+        print("⚠️ No database connection")
         # Mock данные если база недоступна
         return {
             "total_models": 0,
@@ -565,10 +568,15 @@ async def get_admin_stats():
         }
     
     try:
+        print("🔍 Getting statistics from database")
         # Получаем статистику
         models_count = await conn.fetchval("SELECT COUNT(*) FROM models")
         active_tickets = await conn.fetchval("SELECT COUNT(*) FROM tickets WHERE status = 'open'")
         users_count = await conn.fetchval("SELECT COUNT(*) FROM users")
+        
+        print(f"🔍 Models count: {models_count}")
+        print(f"🔍 Tickets count: {active_tickets}")
+        print(f"🔍 Users count: {users_count}")
         
         return {
             "total_models": models_count or 0,
