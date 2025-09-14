@@ -528,26 +528,29 @@ async def update_model(model_id: int, model_data: dict):
 @app.delete("/api/v1/models/{model_id}")
 async def delete_model(model_id: int):
     """Удалить модель"""
-    if not db_pool:
+    conn = await get_db_connection()
+    if not conn:
         raise HTTPException(status_code=503, detail="Database not available")
     
     try:
-        async with db_pool.acquire() as conn:
-            # Проверяем существование модели
-            existing = await conn.fetchrow("SELECT id FROM models WHERE id = $1", model_id)
-            if not existing:
-                raise HTTPException(status_code=404, detail="Model not found")
-            
-            # Удаляем модель
-            await conn.execute("DELETE FROM models WHERE id = $1", model_id)
-            
-            return {"message": "Model deleted successfully"}
-            
+        # Проверяем существование модели
+        existing = await conn.fetchrow("SELECT id FROM models WHERE id = $1", model_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Model not found")
+        
+        # Удаляем модель
+        await conn.execute("DELETE FROM models WHERE id = $1", model_id)
+        
+        return {"message": "Model deleted successfully"}
+        
     except HTTPException:
         raise
     except Exception as e:
         print(f"⚠️ Error deleting model: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete model: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
 
 # ===== ADMIN STATS ENDPOINT =====
 
