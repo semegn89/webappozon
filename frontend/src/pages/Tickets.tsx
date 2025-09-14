@@ -80,13 +80,6 @@ const Tickets: React.FC = () => {
             <h1>Мои тикеты</h1>
             <p>Управление запросами в службу поддержки</p>
           </div>
-          <button 
-            className="btn"
-            onClick={() => navigate('/tickets/create')}
-          >
-            <Plus size={16} />
-            Создать тикет
-          </button>
         </div>
       </div>
 

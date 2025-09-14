@@ -58,24 +58,34 @@ const Home: React.FC = () => {
     }
   ]
 
+  // Загружаем общую статистику системы
+  const { data: systemStats } = useQuery({
+    queryKey: ['system-stats'],
+    queryFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/stats`)
+      if (!response.ok) throw new Error('Failed to load stats')
+      return response.json()
+    }
+  })
+
   const stats = [
     {
       title: 'Всего моделей',
-      value: recentModels?.length || 0,
+      value: systemStats?.total_models || 0,
       icon: Package,
       color: '#667eea',
       change: '+12%'
     },
     {
       title: 'Активные тикеты',
-      value: userTickets?.filter((t: any) => t.status === 'open').length || 0,
+      value: systemStats?.active_tickets || 0,
       icon: Ticket,
       color: '#f093fb',
       change: '+5%'
     },
     {
       title: 'Решено сегодня',
-      value: userTickets?.filter((t: any) => t.status === 'resolved').length || 0,
+      value: systemStats?.total_tickets || 0,
       icon: Star,
       color: '#4facfe',
       change: '+8%'
@@ -218,41 +228,6 @@ const Home: React.FC = () => {
         </div>
       )}
 
-      {/* Поиск */}
-      <div className="search-section">
-        <div className="search-container">
-          <h2 className="search-title">Найти модель</h2>
-          <p className="search-subtitle">
-            Введите название модели, код или бренд для быстрого поиска
-          </p>
-          <div className="search-input-container">
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Например: iPhone 15, Samsung Galaxy..."
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  const query = (e.target as HTMLInputElement).value
-                  if (query.trim()) {
-                    navigate(`/models?q=${encodeURIComponent(query.trim())}`)
-                  }
-                }
-              }}
-            />
-            <button 
-              className="search-button"
-              onClick={(e) => {
-                const input = (e.target as HTMLElement).parentElement?.querySelector('input') as HTMLInputElement
-                if (input?.value.trim()) {
-                  navigate(`/models?q=${encodeURIComponent(input.value.trim())}`)
-                }
-              }}
-            >
-              <Search size={20} color="white" />
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

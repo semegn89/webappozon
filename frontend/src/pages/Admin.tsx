@@ -101,6 +101,39 @@ const Admin: React.FC = () => {
     localStorage.removeItem('admin_auth')
   }
 
+  const handleFileUpload = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.xlsx,.txt'
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/files`, {
+          method: 'POST',
+          body: formData
+        })
+        
+        if (response.ok) {
+          const result = await response.json()
+          alert(`Файл "${file.name}" успешно загружен!`)
+          console.log('Uploaded file:', result)
+        } else {
+          const error = await response.json()
+          alert(`Ошибка загрузки: ${error.detail || 'Неизвестная ошибка'}`)
+        }
+      } catch (error) {
+        console.error('Upload error:', error)
+        alert('Ошибка загрузки файла')
+      }
+    }
+    input.click()
+  }
+
   // Если не аутентифицирован, показываем форму входа
   if (!isAuthenticated) {
     return (
@@ -346,14 +379,14 @@ const Admin: React.FC = () => {
                     <p>Создать новую модель</p>
                   </div>
                 </button>
-                <button className="quick-action-btn">
+                <button className="quick-action-btn" onClick={handleFileUpload}>
                   <Upload size={24} color="white" />
                   <div>
                     <h3>Загрузить файл</h3>
                     <p>Добавить инструкцию</p>
                   </div>
                 </button>
-                <button className="quick-action-btn">
+                <button className="quick-action-btn" onClick={() => setActiveTab('dashboard')}>
                   <BarChart3 size={24} color="white" />
                   <div>
                     <h3>Аналитика</h3>
