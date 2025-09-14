@@ -172,18 +172,18 @@ const TicketDetail: React.FC = () => {
                 style={{ 
                   marginBottom: '16px', 
                   padding: '12px', 
-                  backgroundColor: message.author_id === user?.id ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-secondary-bg-color)',
-                  color: message.author_id === user?.id ? 'white' : 'var(--tg-theme-text-color)',
+                  backgroundColor: message.user_id === user?.id ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-secondary-bg-color)',
+                  color: message.user_id === user?.id ? 'white' : 'var(--tg-theme-text-color)',
                   borderRadius: '8px',
-                  marginLeft: message.author_id === user?.id ? '20%' : '0',
-                  marginRight: message.author_id === user?.id ? '0' : '20%'
+                  marginLeft: message.user_id === user?.id ? '20%' : '0',
+                  marginRight: message.user_id === user?.id ? '0' : '20%'
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <User size={14} />
                     <span style={{ fontSize: '12px', fontWeight: '500' }}>
-                      {message.author.full_name}
+                      {message.author?.full_name || `Пользователь ${message.user_id}`}
                     </span>
                     {message.is_internal_note && (
                       <span style={{ fontSize: '10px', opacity: 0.8, fontStyle: 'italic' }}>
@@ -195,7 +195,7 @@ const TicketDetail: React.FC = () => {
                     {new Date(message.created_at).toLocaleString('ru-RU')}
                   </span>
                 </div>
-                <div style={{ whiteSpace: 'pre-wrap' }}>{message.body}</div>
+                <div style={{ whiteSpace: 'pre-wrap' }}>{message.message}</div>
               </div>
             ))}
           </div>
