@@ -853,6 +853,27 @@ async def create_ticket_message(ticket_id: int, message_data: dict):
         if conn:
             await conn.close()
 
+@app.post("/init-db")
+async def init_database():
+    """Принудительно создать таблицы"""
+    print("🔍 Init database endpoint called")
+    
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        return {"status": "error", "message": "DATABASE_URL not configured"}
+    
+    try:
+        # Убираем channel_binding=require и заменяем sslmode=require на sslmode=prefer
+        clean_url = database_url.replace("&channel_binding=require", "").replace("sslmode=require", "sslmode=prefer")
+        conn = await asyncpg.connect(clean_url)
+        
+        await create_tables()
+        await conn.close()
+        
+        return {"status": "success", "message": "Database tables created successfully"}
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to create tables: {str(e)}"}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
