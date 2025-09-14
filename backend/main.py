@@ -892,7 +892,7 @@ async def create_ticket_message(ticket_id: int, message_data: dict):
         """, 
             ticket_id,
             sender_user_id,
-            message_data.get("message", "")
+            message_data.get("body", message_data.get("message", ""))
         )
         
         return {

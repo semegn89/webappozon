@@ -44,7 +44,7 @@ const TicketDetail: React.FC = () => {
     // Иначе - как пользователь
     const isAdmin = window.location.pathname.includes('/admin')
     const messageData = {
-      message: newMessage.trim(),
+      body: newMessage.trim(),
       user_id: isAdmin ? 0 : undefined // 0 = администратор, undefined = пользователь
     }
     
