@@ -472,25 +472,25 @@ async def get_model(model_id: int):
                 FROM models 
                 WHERE id = $1
             """, model_id)
-            
-            if not row:
-                raise HTTPException(status_code=404, detail="Model not found")
-            
-            return {
-                "id": row["id"],
-                "name": row["name"],
-                "code": row["code"],
-                "brand": row["brand"],
-                "category": row["category"],
-                "year_from": row["year_from"],
-                "year_to": row["year_to"],
-                "description": row["description"],
-                "image_url": row["image_url"],
-                "is_active": row["is_active"],
-                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
-                "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
-                "files": []  # Пока без файлов
-            }
+        
+        if not row:
+            raise HTTPException(status_code=404, detail="Model not found")
+        
+        return {
+            "id": row["id"],
+            "name": row["name"],
+            "code": row["code"],
+            "brand": row["brand"],
+            "category": row["category"],
+            "year_from": row["year_from"],
+            "year_to": row["year_to"],
+            "description": row["description"],
+            "image_url": row["image_url"],
+            "is_active": row["is_active"],
+            "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+            "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
+            "files": []  # Пока без файлов
+        }
             
     except HTTPException:
         raise
@@ -504,18 +504,18 @@ async def get_model(model_id: int):
 @app.put("/api/v1/models/{model_id}")
 async def update_model(model_id: int, model_data: dict):
     """Обновить модель"""
-    if not db_pool:
+    conn = await get_db_connection()
+    if not conn:
         raise HTTPException(status_code=503, detail="Database not available")
     
     try:
-        async with db_pool.acquire() as conn:
-            # Проверяем существование модели
-            existing = await conn.fetchrow("SELECT id FROM models WHERE id = $1", model_id)
-            if not existing:
-                raise HTTPException(status_code=404, detail="Model not found")
-            
-            # Обновляем модель
-            row = await conn.fetchrow("""
+        # Проверяем существование модели
+        existing = await conn.fetchrow("SELECT id FROM models WHERE id = $1", model_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Model not found")
+        
+        # Обновляем модель
+        row = await conn.fetchrow("""
                 UPDATE models 
                 SET name = COALESCE($2, name),
                     code = COALESCE($3, code),
@@ -542,27 +542,30 @@ async def update_model(model_id: int, model_data: dict):
                 model_data.get("image_url"),
                 model_data.get("is_active")
             )
-            
-            return {
-                "id": row["id"],
-                "name": row["name"],
-                "code": row["code"],
-                "brand": row["brand"],
-                "category": row["category"],
-                "year_from": row["year_from"],
-                "year_to": row["year_to"],
-                "description": row["description"],
-                "image_url": row["image_url"],
-                "is_active": row["is_active"],
-                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
-                "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None
-            }
+        
+        return {
+            "id": row["id"],
+            "name": row["name"],
+            "code": row["code"],
+            "brand": row["brand"],
+            "category": row["category"],
+            "year_from": row["year_from"],
+            "year_to": row["year_to"],
+            "description": row["description"],
+            "image_url": row["image_url"],
+            "is_active": row["is_active"],
+            "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+            "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None
+        }
             
     except HTTPException:
         raise
     except Exception as e:
         print(f"⚠️ Error updating model: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to update model: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
 
 @app.delete("/api/v1/models/{model_id}")
 async def delete_model(model_id: int):
