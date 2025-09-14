@@ -2,7 +2,7 @@
 Простая рабочая версия API без сложных зависимостей
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import asyncio
@@ -781,6 +781,45 @@ async def create_ticket(ticket_data: dict):
         if conn:
             await conn.close()
 
+@app.get("/api/v1/tickets/{ticket_id}")
+async def get_ticket(ticket_id: int):
+    """Получить тикет по ID"""
+    conn = await get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database not available")
+    
+    try:
+        # Получаем тикет
+        ticket = await conn.fetchrow("""
+            SELECT id, user_id, model_id, subject, description, priority, status, created_at, updated_at
+            FROM tickets 
+            WHERE id = $1
+        """, ticket_id)
+        
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Ticket not found")
+        
+        return {
+            "id": ticket["id"],
+            "user_id": ticket["user_id"],
+            "model_id": ticket["model_id"],
+            "subject": ticket["subject"],
+            "description": ticket["description"],
+            "priority": ticket["priority"],
+            "status": ticket["status"],
+            "created_at": ticket["created_at"].isoformat() if ticket["created_at"] else None,
+            "updated_at": ticket["updated_at"].isoformat() if ticket["updated_at"] else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"⚠️ Error getting ticket: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get ticket: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
+
 # ===== TICKET MESSAGES ENDPOINTS =====
 
 @app.get("/api/v1/tickets/{ticket_id}/messages")
@@ -882,6 +921,39 @@ async def init_database():
         return {"status": "success", "message": "Database tables created successfully"}
     except Exception as e:
         return {"status": "error", "message": f"Failed to create tables: {str(e)}"}
+
+# ===== FILE UPLOAD ENDPOINTS =====
+
+@app.post("/api/v1/files")
+async def upload_file(file: UploadFile = File(...)):
+    """Загрузить файл"""
+    try:
+        # Проверяем тип файла
+        allowed_extensions = {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'xlsx', 'txt'}
+        file_extension = file.filename.split('.')[-1].lower() if '.' in file.filename else ''
+        
+        if file_extension not in allowed_extensions:
+            raise HTTPException(status_code=400, detail="File type not allowed")
+        
+        # Читаем содержимое файла
+        contents = await file.read()
+        
+        # В реальном приложении здесь бы сохраняли файл на диск
+        # Для демо просто возвращаем информацию о файле
+        return {
+            "file": {
+                "name": file.filename,
+                "size": len(contents),
+                "type": file.content_type,
+                "url": f"/uploads/{file.filename}"  # Заглушка URL
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"⚠️ Error uploading file: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
