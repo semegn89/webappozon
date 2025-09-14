@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { X, Save, Package, Upload, Download, Trash2, File } from 'lucide-react'
-import { modelsApi } from '../services/api'
+import { modelsApi, ticketsApi } from '../services/api'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 interface ModelFormProps {
@@ -11,7 +11,6 @@ interface ModelFormProps {
 }
 
 const ModelForm: React.FC<ModelFormProps> = ({ isOpen, onClose, onSuccess, model }) => {
-  const queryClient = useQueryClient()
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -28,14 +27,14 @@ const ModelForm: React.FC<ModelFormProps> = ({ isOpen, onClose, onSuccess, model
   // Загружаем файлы модели (только если модель существует)
   const { data: modelFiles = [], refetch: refetchFiles } = useQuery({
     queryKey: ['model-files', model?.id],
-    queryFn: () => modelsApi.getModelFiles(model.id),
+    queryFn: () => ticketsApi.getModelFiles(model.id),
     enabled: !!model?.id
   })
 
   // Мутация для загрузки файла
   const uploadFileMutation = useMutation({
     mutationFn: ({ file, comment }: { file: File, comment?: string }) => 
-      modelsApi.uploadModelFile(model.id, file, comment),
+      ticketsApi.uploadModelFile(model.id, file, comment),
     onSuccess: () => {
       refetchFiles()
       setUploadComment('')
@@ -44,7 +43,7 @@ const ModelForm: React.FC<ModelFormProps> = ({ isOpen, onClose, onSuccess, model
 
   // Мутация для удаления файла
   const deleteFileMutation = useMutation({
-    mutationFn: (fileId: number) => modelsApi.deleteModelFile(model.id, fileId),
+    mutationFn: (fileId: number) => ticketsApi.deleteModelFile(model.id, fileId),
     onSuccess: () => {
       refetchFiles()
     }
