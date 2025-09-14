@@ -306,6 +306,13 @@ const Admin: React.FC = () => {
                 trend="+5%"
               />
               <StatCard
+                title="Всего тикетов"
+                value={statsData?.total_tickets || 0}
+                icon={MessageSquare}
+                color="#6366f1"
+                trend="+3%"
+              />
+              <StatCard
                 title="Всего файлов"
                 value={statsData?.total_files || 0}
                 icon={FileText}

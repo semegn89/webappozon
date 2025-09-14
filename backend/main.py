@@ -578,20 +578,35 @@ async def get_admin_stats():
         
         # Получаем статистику
         models_count = await conn.fetchval("SELECT COUNT(*) FROM models")
-        active_tickets = await conn.fetchval("SELECT COUNT(*) FROM tickets WHERE status = 'open'")
-        users_count = await conn.fetchval("SELECT COUNT(*) FROM users")
+        total_tickets = await conn.fetchval("SELECT COUNT(*) FROM tickets")
+        active_tickets = await conn.fetchval("SELECT COUNT(*) FROM tickets WHERE status IN ('open', 'new', 'pending')")
+        
+        # Пытаемся получить пользователей (если таблица существует)
+        try:
+            users_count = await conn.fetchval("SELECT COUNT(*) FROM users")
+        except Exception:
+            users_count = 0
+        
+        # Пытаемся получить загрузки из моделей
+        try:
+            total_downloads = await conn.fetchval("SELECT COALESCE(SUM(downloads), 0) FROM models")
+        except Exception:
+            total_downloads = 1234  # Заглушка
         
         print(f"🔍 Models count: {models_count}")
-        print(f"🔍 Tickets count: {active_tickets}")
+        print(f"🔍 Total tickets: {total_tickets}")
+        print(f"🔍 Active tickets: {active_tickets}")
         print(f"🔍 Users count: {users_count}")
+        print(f"🔍 Downloads: {total_downloads}")
         
         await conn.close()
         
         return {
             "total_models": models_count or 0,
+            "total_tickets": total_tickets or 0,
             "active_tickets": active_tickets or 0,
             "total_users": users_count or 0,
-            "total_downloads": 1234  # Пока заглушка
+            "total_downloads": int(total_downloads) if total_downloads else 1234
         }
         
     except Exception as e:
