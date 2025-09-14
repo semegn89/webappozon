@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { X, Save, Package, Upload, Download, Trash2, File } from 'lucide-react'
+import { X, Save, Package, Upload, Download, Trash2, File as FileIcon } from 'lucide-react'
 import { modelsApi, ticketsApi } from '../services/api'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 
 interface ModelFormProps {
   isOpen: boolean
@@ -33,7 +33,7 @@ const ModelForm: React.FC<ModelFormProps> = ({ isOpen, onClose, onSuccess, model
 
   // Мутация для загрузки файла
   const uploadFileMutation = useMutation({
-    mutationFn: ({ file, comment }: { file: File, comment?: string }) => 
+    mutationFn: ({ file, comment }: { file: any, comment?: string }) => 
       ticketsApi.uploadModelFile(model.id, file, comment),
     onSuccess: () => {
       refetchFiles()
@@ -290,7 +290,7 @@ const ModelForm: React.FC<ModelFormProps> = ({ isOpen, onClose, onSuccess, model
                   {modelFiles.map((file: any) => (
                     <div key={file.id} className="file-item">
                       <div className="file-info">
-                        <File size={16} />
+                        <FileIcon size={16} />
                         <div className="file-details">
                           <span className="file-name">{file.filename}</span>
                           <span className="file-meta">

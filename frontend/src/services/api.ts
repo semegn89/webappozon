@@ -225,9 +225,9 @@ export const ticketsApi = {
   },
 
   // Model files API
-  uploadModelFile: async (modelId: number, file: File, comment?: string) => {
+  uploadModelFile: async (modelId: number, file: any, comment?: string) => {
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', file as any)
     if (comment) formData.append('comment', comment)
     
     const response = await api.post(`/models/${modelId}/files`, formData, {
