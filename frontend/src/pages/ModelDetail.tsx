@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Download, Eye, FileText, Package } from 'lucide-react'
-import { modelsApi, filesApi } from '../services/api'
+import { modelsApi, ticketsApi } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 const ModelDetail: React.FC = () => {
@@ -18,17 +18,15 @@ const ModelDetail: React.FC = () => {
 
   const { data: files } = useQuery({
     queryKey: ['model-files', id],
-    queryFn: () => filesApi.getFiles({ model_id: Number(id) }),
-    enabled: !!id,
-    select: (data) => data.items
+    queryFn: () => ticketsApi.getModelFiles(Number(id)),
+    enabled: !!id
   })
 
-  const handleDownload = async (fileId: number, filename: string) => {
+  const handleDownload = async (file: any) => {
     try {
-      const downloadData = await filesApi.getDownloadUrl(fileId)
       const link = document.createElement('a')
-      link.href = downloadData.download_url
-      link.download = filename
+      link.href = file.url
+      link.download = file.filename
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -37,31 +35,21 @@ const ModelDetail: React.FC = () => {
     }
   }
 
-  const handleView = async (fileId: number) => {
+  const handleView = async (file: any) => {
     try {
-      const downloadData = await filesApi.getDownloadUrl(fileId)
-      window.open(downloadData.download_url, '_blank')
+      window.open(file.url, '_blank')
     } catch (error) {
       console.error('View failed:', error)
     }
   }
 
-  const getFileIcon = (fileType: string): string => {
-    switch (fileType.toLowerCase()) {
-      case 'pdf':
-        return '📄'
-      case 'docx':
-        return '📝'
-      case 'xlsx':
-        return '📊'
-      case 'jpg':
-      case 'png':
-        return '🖼️'
-      case 'zip':
-        return '📦'
-      default:
-        return '📎'
-    }
+  const getFileIcon = (mimeType: string): string => {
+    if (mimeType.includes('pdf')) return '📄'
+    if (mimeType.includes('word') || mimeType.includes('docx')) return '📝'
+    if (mimeType.includes('excel') || mimeType.includes('xlsx')) return '📊'
+    if (mimeType.includes('image')) return '🖼️'
+    if (mimeType.includes('zip')) return '📦'
+    return '📎'
   }
 
   const formatFileSize = (bytes: number): string => {
@@ -190,12 +178,12 @@ const ModelDetail: React.FC = () => {
                   <div key={file.id} className="list-item">
                     <div className="list-item-header">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ fontSize: '24px' }}>{getFileIcon(file.file_type)}</span>
+                        <span style={{ fontSize: '24px' }}>{getFileIcon(file.mime_type)}</span>
                         <div>
-                          <div className="list-item-title">{file.title}</div>
+                          <div className="list-item-title">{file.filename}</div>
                           <div className="list-item-subtitle">
-                            {file.file_type.toUpperCase()} • {formatFileSize(file.size_bytes)}
-                            {file.version && ` • Версия ${file.version}`}
+                            {file.mime_type.split('/')[1]?.toUpperCase() || 'FILE'} • {formatFileSize(file.file_size)}
+                            {file.comment && ` • ${file.comment}`}
                           </div>
                           <div className="list-item-meta">
                             {new Date(file.created_at).toLocaleDateString('ru-RU')}
@@ -204,18 +192,18 @@ const ModelDetail: React.FC = () => {
                       </div>
                       
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        {(file.is_document || file.is_image) && (
-                          <button
-                            className="btn btn-small btn-secondary"
-                            onClick={() => handleView(file.id)}
-                          >
-                            <Eye size={14} />
-                            Просмотр
-                          </button>
+                        {(file.mime_type.includes('pdf') || file.mime_type.includes('image')) && (
+                        <button
+                          className="btn btn-small btn-secondary"
+                          onClick={() => handleView(file)}
+                        >
+                          <Eye size={14} />
+                          Просмотр
+                        </button>
                         )}
                         <button
                           className="btn btn-small"
-                          onClick={() => handleDownload(file.id, `${file.title}.${file.file_type}`)}
+                          onClick={() => handleDownload(file)}
                         >
                           <Download size={14} />
                           Скачать
