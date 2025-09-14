@@ -554,7 +554,8 @@ async def delete_model(model_id: int):
 @app.get("/api/v1/admin/stats")
 async def get_admin_stats():
     """Получить статистику для админ панели"""
-    if not db_pool:
+    conn = await get_db_connection()
+    if not conn:
         # Mock данные если база недоступна
         return {
             "total_models": 0,
@@ -564,19 +565,18 @@ async def get_admin_stats():
         }
     
     try:
-        async with db_pool.acquire() as conn:
-            # Получаем статистику
-            models_count = await conn.fetchval("SELECT COUNT(*) FROM models")
-            active_tickets = await conn.fetchval("SELECT COUNT(*) FROM tickets WHERE status = 'open'")
-            users_count = await conn.fetchval("SELECT COUNT(*) FROM users")
-            
-            return {
-                "total_models": models_count or 0,
-                "active_tickets": active_tickets or 0,
-                "total_users": users_count or 0,
-                "total_downloads": 1234  # Пока заглушка
-            }
-            
+        # Получаем статистику
+        models_count = await conn.fetchval("SELECT COUNT(*) FROM models")
+        active_tickets = await conn.fetchval("SELECT COUNT(*) FROM tickets WHERE status = 'open'")
+        users_count = await conn.fetchval("SELECT COUNT(*) FROM users")
+        
+        return {
+            "total_models": models_count or 0,
+            "active_tickets": active_tickets or 0,
+            "total_users": users_count or 0,
+            "total_downloads": 1234  # Пока заглушка
+        }
+        
     except Exception as e:
         print(f"⚠️ Error getting admin stats: {e}")
         return {
@@ -585,6 +585,9 @@ async def get_admin_stats():
             "total_users": 0,
             "total_downloads": 1234
         }
+    finally:
+        if conn:
+            await conn.close()
 
 # ===== USERS ENDPOINTS =====
 
