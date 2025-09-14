@@ -39,7 +39,16 @@ const TicketDetail: React.FC = () => {
     e.preventDefault()
     if (!newMessage.trim()) return
     
-    sendMessageMutation.mutate({ body: newMessage.trim() })
+    // Определяем, кто отправляет сообщение
+    // Если мы в админ панели - отправляем как администратор (user_id: 0)
+    // Иначе - как пользователь
+    const isAdmin = window.location.pathname.includes('/admin')
+    const messageData = {
+      message: newMessage.trim(),
+      user_id: isAdmin ? 0 : undefined // 0 = администратор, undefined = пользователь
+    }
+    
+    sendMessageMutation.mutate(messageData)
   }
 
   const getStatusIcon = (status: string) => {
@@ -183,7 +192,8 @@ const TicketDetail: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <User size={14} />
                     <span style={{ fontSize: '12px', fontWeight: '500' }}>
-                      {message.author?.full_name || `Пользователь ${message.user_id}`}
+                      {message.author?.full_name || 
+                       (message.user_id === 0 ? 'Администратор' : `Пользователь ${message.user_id}`)}
                     </span>
                     {message.is_internal_note && (
                       <span style={{ fontSize: '10px', opacity: 0.8, fontStyle: 'italic' }}>

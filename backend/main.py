@@ -869,9 +869,20 @@ async def create_ticket_message(ticket_id: int, message_data: dict):
     
     try:
         # Проверяем существование тикета
-        ticket = await conn.fetchrow("SELECT id FROM tickets WHERE id = $1", ticket_id)
+        ticket = await conn.fetchrow("SELECT id, user_id FROM tickets WHERE id = $1", ticket_id)
         if not ticket:
             raise HTTPException(status_code=404, detail="Ticket not found")
+        
+        # Определяем, кто отправляет сообщение
+        # Если user_id не указан или равен user_id тикета - это пользователь
+        # Если user_id = 0 или -1 - это администратор
+        sender_user_id = message_data.get("user_id")
+        if sender_user_id is None:
+            # По умолчанию - пользователь, создавший тикет
+            sender_user_id = ticket["user_id"]
+        elif sender_user_id == 0 or sender_user_id == -1:
+            # Администратор
+            sender_user_id = 0
         
         # Создаем сообщение
         row = await conn.fetchrow("""
@@ -880,7 +891,7 @@ async def create_ticket_message(ticket_id: int, message_data: dict):
             RETURNING id, ticket_id, user_id, message, created_at
         """, 
             ticket_id,
-            message_data.get("user_id", 1),
+            sender_user_id,
             message_data.get("message", "")
         )
         
