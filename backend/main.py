@@ -4,6 +4,8 @@
 
 from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import os
 import asyncio
 import asyncpg
@@ -223,6 +225,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Создаем директорию для загрузок
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# Подключаем статические файлы
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 # ===== BASIC ENDPOINTS =====
 
@@ -1015,7 +1024,18 @@ async def upload_model_file(model_id: int, file: UploadFile = File(...), comment
         # Генерируем уникальное имя файла
         import uuid
         unique_filename = f"{uuid.uuid4()}_{file.filename}"
+        
+        # Создаем директорию для модели
+        model_dir = os.path.join(UPLOAD_DIR, "models", str(model_id))
+        os.makedirs(model_dir, exist_ok=True)
+        
+        # Путь к файлу на диске
+        file_path = os.path.join(model_dir, unique_filename)
         filepath = f"/uploads/models/{model_id}/{unique_filename}"
+        
+        # Сохраняем файл на диск
+        with open(file_path, "wb") as f:
+            f.write(contents)
         
         # Сохраняем информацию о файле в базу данных
         row = await conn.fetchrow("""
@@ -1100,12 +1120,18 @@ async def delete_model_file(model_id: int, file_id: int):
     try:
         # Проверяем существование файла
         file_record = await conn.fetchrow("""
-            SELECT id, filename FROM model_files 
+            SELECT id, filename, filepath FROM model_files 
             WHERE id = $1 AND model_id = $2
         """, file_id, model_id)
         
         if not file_record:
             raise HTTPException(status_code=404, detail="File not found")
+        
+        # Удаляем файл с диска
+        file_path = file_record['filepath'].replace('/uploads/', '')
+        full_file_path = os.path.join(UPLOAD_DIR, file_path)
+        if os.path.exists(full_file_path):
+            os.remove(full_file_path)
         
         # Удаляем файл из базы данных
         await conn.execute("DELETE FROM model_files WHERE id = $1", file_id)
@@ -1117,6 +1143,46 @@ async def delete_model_file(model_id: int, file_id: int):
     except Exception as e:
         print(f"⚠️ Error deleting model file: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
+
+@app.get("/api/v1/files/{file_id}/download")
+async def download_file(file_id: int):
+    """Скачать файл по ID"""
+    conn = await get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database not available")
+    
+    try:
+        # Получаем информацию о файле
+        file_record = await conn.fetchrow("""
+            SELECT filename, filepath, mime_type FROM model_files 
+            WHERE id = $1
+        """, file_id)
+        
+        if not file_record:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Путь к файлу на диске
+        file_path = file_record['filepath'].replace('/uploads/', '')
+        full_file_path = os.path.join(UPLOAD_DIR, file_path)
+        
+        if not os.path.exists(full_file_path):
+            raise HTTPException(status_code=404, detail="File not found on disk")
+        
+        # Возвращаем файл
+        return FileResponse(
+            path=full_file_path,
+            filename=file_record['filename'],
+            media_type=file_record['mime_type']
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"⚠️ Error downloading file: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
     finally:
         if conn:
             await conn.close()

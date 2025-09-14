@@ -24,22 +24,41 @@ const ModelDetail: React.FC = () => {
 
   const handleDownload = async (file: any) => {
     try {
+      // Используем API endpoint для скачивания
+      const response = await fetch(`https://api.gakshop.com/api/v1/files/${file.id}/download`)
+      if (!response.ok) {
+        throw new Error('Download failed')
+      }
+      
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = file.filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Download failed:', error)
+      // Fallback на прямой URL
       const link = document.createElement('a')
       link.href = file.url
       link.download = file.filename
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-    } catch (error) {
-      console.error('Download failed:', error)
     }
   }
 
   const handleView = async (file: any) => {
     try {
-      window.open(file.url, '_blank')
+      // Используем API endpoint для просмотра
+      window.open(`https://api.gakshop.com/api/v1/files/${file.id}/download`, '_blank')
     } catch (error) {
       console.error('View failed:', error)
+      // Fallback на прямой URL
+      window.open(file.url, '_blank')
     }
   }
 
