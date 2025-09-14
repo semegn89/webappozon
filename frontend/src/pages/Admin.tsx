@@ -80,6 +80,7 @@ const Admin: React.FC = () => {
   const handleModelFormSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-models'] })
     queryClient.invalidateQueries({ queryKey: ['models'] })
+    setActiveTab('models') // переключаем на вкладку моделей
   }
 
   if (statsLoading) return <LoadingSpinner message="Загрузка админ-панели..." />
@@ -371,15 +372,24 @@ const Admin: React.FC = () => {
               </button>
             </div>
             <div className="models-grid">
-              {modelsData?.items?.map((model: any) => (
-                <ModelCard key={model.id} model={model} />
-              )) || (
-                <div className="empty-state">
-                  <Package size={48} color="#9ca3af" />
-                  <h3>Модели не найдены</h3>
-                  <p>Добавьте первую модель в систему</p>
-                </div>
-              )}
+              {(() => {
+                // Универсальная распаковка ответа API для моделей
+                const adminModelsRaw = modelsData as any
+                const adminModels: any[] =
+                  (adminModelsRaw?.items ?? adminModelsRaw?.models ?? (Array.isArray(adminModelsRaw) ? adminModelsRaw : [])) as any[]
+                
+                return adminModels.length > 0 ? (
+                  adminModels.map((model: any) => (
+                    <ModelCard key={model.id} model={model} />
+                  ))
+                ) : (
+                  <div className="empty-state">
+                    <Package size={48} color="#9ca3af" />
+                    <h3>Модели не найдены</h3>
+                    <p>Добавьте первую модель</p>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         )}

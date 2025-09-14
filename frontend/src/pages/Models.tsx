@@ -50,8 +50,18 @@ const Models: React.FC = () => {
   if (isLoading) return <LoadingSpinner message="Загрузка моделей..." />
   if (error) return <div className="error">Ошибка загрузки моделей</div>
 
-  const models = data?.items || []
-  const totalPages = data?.pages || 1
+  // Универсальная распаковка ответа API
+  // Поддерживаем форматы:
+  // 1) { items: [...], pages: N }
+  // 2) { models: [...] }
+  // 3) [...] (чистый массив)
+  const raw = data as any
+
+  const models: any[] =
+    (raw?.items ?? raw?.models ?? (Array.isArray(raw) ? raw : [])) as any[]
+
+  const totalPages: number =
+    (typeof raw?.pages === 'number' && raw.pages > 0) ? raw.pages : 1
 
   return (
     <div className="container">
