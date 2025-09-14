@@ -7,8 +7,6 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import asyncio
 import asyncpg
-import psycopg2
-from psycopg2.extras import RealDictCursor
 from contextlib import asynccontextmanager
 
 # Глобальная переменная для подключения к БД
@@ -218,9 +216,15 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://gakshop.com",
+        "https://www.gakshop.com", 
+        "https://api.gakshop.com",
+        "http://localhost:3000",
+        "http://localhost:5173"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -1114,6 +1118,40 @@ async def delete_model_file(model_id: int, file_id: int):
     except Exception as e:
         print(f"⚠️ Error deleting model file: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
+
+@app.get("/api/v1/files/{file_id}/download")
+async def download_file(file_id: int):
+    """Скачать файл по ID"""
+    conn = await get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database not available")
+    
+    try:
+        # Получаем информацию о файле
+        file_record = await conn.fetchrow("""
+            SELECT filename, filepath, mime_type FROM model_files 
+            WHERE id = $1
+        """, file_id)
+        
+        if not file_record:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Возвращаем информацию о файле для скачивания
+        return {
+            "id": file_id,
+            "filename": file_record['filename'],
+            "url": f"https://api.gakshop.com{file_record['filepath']}",
+            "mime_type": file_record['mime_type']
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"⚠️ Error getting file info: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get file info: {str(e)}")
     finally:
         if conn:
             await conn.close()
