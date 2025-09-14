@@ -222,6 +222,28 @@ export const ticketsApi = {
   getTicketStats: async () => {
     const response = await api.get('/tickets/stats')
     return response.data
+  },
+
+  // Model files API
+  uploadModelFile: async (modelId: number, file: File, comment?: string) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    if (comment) formData.append('comment', comment)
+    
+    const response = await api.post(`/models/${modelId}/files`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return response.data
+  },
+
+  getModelFiles: async (modelId: number) => {
+    const response = await api.get(`/models/${modelId}/files`)
+    return response.data
+  },
+
+  deleteModelFile: async (modelId: number, fileId: number) => {
+    const response = await api.delete(`/models/${modelId}/files/${fileId}`)
+    return response.data
   }
 }
 

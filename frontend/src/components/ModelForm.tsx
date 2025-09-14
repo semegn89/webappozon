@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { X, Save, Package } from 'lucide-react'
+import { X, Save, Package, Upload, Download, Trash2, File } from 'lucide-react'
 import { modelsApi } from '../services/api'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 interface ModelFormProps {
   isOpen: boolean
@@ -10,19 +11,44 @@ interface ModelFormProps {
 }
 
 const ModelForm: React.FC<ModelFormProps> = ({ isOpen, onClose, onSuccess, model }) => {
+  const queryClient = useQueryClient()
   const [formData, setFormData] = useState({
     name: '',
     code: '',
     brand: '',
-    category: 'general',
-    year_from: '',
-    year_to: '',
+    category: '',
     description: '',
     image_url: '',
     is_active: true
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [uploadComment, setUploadComment] = useState('')
+
+  // Загружаем файлы модели (только если модель существует)
+  const { data: modelFiles = [], refetch: refetchFiles } = useQuery({
+    queryKey: ['model-files', model?.id],
+    queryFn: () => modelsApi.getModelFiles(model.id),
+    enabled: !!model?.id
+  })
+
+  // Мутация для загрузки файла
+  const uploadFileMutation = useMutation({
+    mutationFn: ({ file, comment }: { file: File, comment?: string }) => 
+      modelsApi.uploadModelFile(model.id, file, comment),
+    onSuccess: () => {
+      refetchFiles()
+      setUploadComment('')
+    }
+  })
+
+  // Мутация для удаления файла
+  const deleteFileMutation = useMutation({
+    mutationFn: (fileId: number) => modelsApi.deleteModelFile(model.id, fileId),
+    onSuccess: () => {
+      refetchFiles()
+    }
+  })
 
   // Заполняем форму данными модели при редактировании
   useEffect(() => {
@@ -31,9 +57,7 @@ const ModelForm: React.FC<ModelFormProps> = ({ isOpen, onClose, onSuccess, model
         name: model.name || '',
         code: model.code || '',
         brand: model.brand || '',
-        category: model.category || 'general',
-        year_from: model.year_from || '',
-        year_to: model.year_to || '',
+        category: model.category || '',
         description: model.description || '',
         image_url: model.image_url || '',
         is_active: model.is_active !== undefined ? model.is_active : true
@@ -44,9 +68,7 @@ const ModelForm: React.FC<ModelFormProps> = ({ isOpen, onClose, onSuccess, model
         name: '',
         code: '',
         brand: '',
-        category: 'general',
-        year_from: '',
-        year_to: '',
+        category: '',
         description: '',
         image_url: '',
         is_active: true
@@ -62,9 +84,7 @@ const ModelForm: React.FC<ModelFormProps> = ({ isOpen, onClose, onSuccess, model
 
     try {
       const data = {
-        ...formData,
-        year_from: formData.year_from ? parseInt(formData.year_from) : null,
-        year_to: formData.year_to ? parseInt(formData.year_to) : null
+        ...formData
       }
 
       if (model) {
@@ -90,6 +110,39 @@ const ModelForm: React.FC<ModelFormProps> = ({ isOpen, onClose, onSuccess, model
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }))
+  }
+
+  const handleFileUpload = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.xlsx,.txt'
+    input.multiple = true
+    input.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files
+      if (files && files.length > 0) {
+        Array.from(files).forEach(file => {
+          uploadFileMutation.mutate({ 
+            file, 
+            comment: uploadComment || undefined 
+          })
+        })
+      }
+    }
+    input.click()
+  }
+
+  const handleDeleteFile = (fileId: number, filename: string) => {
+    if (window.confirm(`Удалить файл "${filename}"?`)) {
+      deleteFileMutation.mutate(fileId)
+    }
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
   if (!isOpen) return null
@@ -154,50 +207,18 @@ const ModelForm: React.FC<ModelFormProps> = ({ isOpen, onClose, onSuccess, model
             </div>
             <div className="form-group">
               <label htmlFor="category">Категория</label>
-              <select
+              <input
+                type="text"
                 id="category"
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
-              >
-                <option value="general">Общее</option>
-                <option value="smartphone">Смартфон</option>
-                <option value="tablet">Планшет</option>
-                <option value="laptop">Ноутбук</option>
-                <option value="accessory">Аксессуар</option>
-                <option value="other">Другое</option>
-              </select>
+                placeholder="Например: Фотоаппараты, Серверное оборудование, Игровые приставки"
+                maxLength={100}
+              />
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="year_from">Год выпуска (от)</label>
-              <input
-                type="number"
-                id="year_from"
-                name="year_from"
-                value={formData.year_from}
-                onChange={handleChange}
-                placeholder="2023"
-                min="1990"
-                max="2030"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="year_to">Год выпуска (до)</label>
-              <input
-                type="number"
-                id="year_to"
-                name="year_to"
-                value={formData.year_to}
-                onChange={handleChange}
-                placeholder="2024"
-                min="1990"
-                max="2030"
-              />
-            </div>
-          </div>
 
           <div className="form-group">
             <label htmlFor="image_url">URL изображения</label>
@@ -234,6 +255,77 @@ const ModelForm: React.FC<ModelFormProps> = ({ isOpen, onClose, onSuccess, model
               <span className="checkbox-text">Модель активна</span>
             </label>
           </div>
+
+          {/* Секция файлов модели (только для редактирования) */}
+          {model && (
+            <div className="model-files-section">
+              <h3>Файлы модели</h3>
+              <p className="files-description">Файлы, относящиеся к этой модели</p>
+              
+              {/* Загрузка файлов */}
+              <div className="file-upload-section">
+                <div className="upload-comment">
+                  <input
+                    type="text"
+                    placeholder="Комментарий к файлу (опционально)"
+                    value={uploadComment}
+                    onChange={(e) => setUploadComment(e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleFileUpload}
+                  disabled={uploadFileMutation.isPending}
+                >
+                  <Upload size={16} />
+                  {uploadFileMutation.isPending ? 'Загрузка...' : 'Загрузить файлы'}
+                </button>
+              </div>
+
+              {/* Список файлов */}
+              {modelFiles.length > 0 && (
+                <div className="files-list">
+                  <h4>Прикрепленные файлы:</h4>
+                  {modelFiles.map((file: any) => (
+                    <div key={file.id} className="file-item">
+                      <div className="file-info">
+                        <File size={16} />
+                        <div className="file-details">
+                          <span className="file-name">{file.filename}</span>
+                          <span className="file-meta">
+                            {formatFileSize(file.file_size)} • {new Date(file.created_at).toLocaleDateString('ru-RU')}
+                          </span>
+                          {file.comment && (
+                            <span className="file-comment">{file.comment}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="file-actions">
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-sm btn-secondary"
+                        >
+                          <Download size={14} />
+                        </a>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-danger"
+                          onClick={() => handleDeleteFile(file.id, file.filename)}
+                          disabled={deleteFileMutation.isPending}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="modal-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose}>

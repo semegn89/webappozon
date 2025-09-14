@@ -157,6 +157,20 @@ async def create_tables():
             )
         """)
         
+        # Создаем таблицу файлов моделей
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS model_files (
+                id SERIAL PRIMARY KEY,
+                model_id INTEGER REFERENCES models(id) ON DELETE CASCADE,
+                filename TEXT NOT NULL,
+                filepath TEXT NOT NULL,
+                file_size INTEGER,
+                mime_type VARCHAR(100),
+                comment TEXT,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        """)
+        
         # Создаем таблицу сообщений тикетов
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS ticket_messages (
@@ -965,6 +979,140 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         print(f"⚠️ Error uploading file: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
+
+# ===== MODEL FILES ENDPOINTS =====
+
+@app.post("/api/v1/models/{model_id}/files")
+async def upload_model_file(model_id: int, file: UploadFile = File(...), comment: str = ""):
+    """Загрузить файл для модели"""
+    conn = await get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database not available")
+    
+    try:
+        # Проверяем существование модели
+        model = await conn.fetchrow("SELECT id FROM models WHERE id = $1", model_id)
+        if not model:
+            raise HTTPException(status_code=404, detail="Model not found")
+        
+        # Проверяем тип файла
+        allowed_extensions = {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'xlsx', 'txt'}
+        file_extension = file.filename.split('.')[-1].lower() if '.' in file.filename else ''
+        
+        if file_extension not in allowed_extensions:
+            raise HTTPException(status_code=400, detail="File type not allowed")
+        
+        # Читаем содержимое файла
+        contents = await file.read()
+        
+        # Генерируем уникальное имя файла
+        import uuid
+        unique_filename = f"{uuid.uuid4()}_{file.filename}"
+        filepath = f"/uploads/models/{model_id}/{unique_filename}"
+        
+        # Сохраняем информацию о файле в базу данных
+        row = await conn.fetchrow("""
+            INSERT INTO model_files (model_id, filename, filepath, file_size, mime_type, comment)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, filename, filepath, file_size, mime_type, comment, created_at
+        """, 
+            model_id, file.filename, filepath, len(contents), file.content_type, comment
+        )
+        
+        return {
+            "id": row["id"],
+            "filename": row["filename"],
+            "filepath": row["filepath"],
+            "file_size": row["file_size"],
+            "mime_type": row["mime_type"],
+            "comment": row["comment"],
+            "created_at": row["created_at"].isoformat(),
+            "url": f"https://api.gakshop.com{filepath}"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"⚠️ Error uploading model file: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
+
+@app.get("/api/v1/models/{model_id}/files")
+async def get_model_files(model_id: int):
+    """Получить список файлов модели"""
+    conn = await get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database not available")
+    
+    try:
+        # Проверяем существование модели
+        model = await conn.fetchrow("SELECT id FROM models WHERE id = $1", model_id)
+        if not model:
+            raise HTTPException(status_code=404, detail="Model not found")
+        
+        # Получаем файлы модели
+        files = await conn.fetch("""
+            SELECT id, filename, filepath, file_size, mime_type, comment, created_at
+            FROM model_files
+            WHERE model_id = $1
+            ORDER BY created_at DESC
+        """, model_id)
+        
+        return [
+            {
+                "id": file["id"],
+                "filename": file["filename"],
+                "filepath": file["filepath"],
+                "file_size": file["file_size"],
+                "mime_type": file["mime_type"],
+                "comment": file["comment"],
+                "created_at": file["created_at"].isoformat(),
+                "url": f"https://api.gakshop.com{file['filepath']}"
+            }
+            for file in files
+        ]
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"⚠️ Error getting model files: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get files: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
+
+@app.delete("/api/v1/models/{model_id}/files/{file_id}")
+async def delete_model_file(model_id: int, file_id: int):
+    """Удалить файл модели"""
+    conn = await get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database not available")
+    
+    try:
+        # Проверяем существование файла
+        file_record = await conn.fetchrow("""
+            SELECT id, filename FROM model_files 
+            WHERE id = $1 AND model_id = $2
+        """, file_id, model_id)
+        
+        if not file_record:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Удаляем файл из базы данных
+        await conn.execute("DELETE FROM model_files WHERE id = $1", file_id)
+        
+        return {"message": f"File '{file_record['filename']}' deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"⚠️ Error deleting model file: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
 
 if __name__ == "__main__":
     import uvicorn
