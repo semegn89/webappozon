@@ -114,10 +114,14 @@ async def lifespan(app: FastAPI):
 
 async def create_tables():
     """Создание таблиц в базе данных"""
-    if not db_pool:
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url or database_url.startswith("postgresql://user:password"):
         return
     
-    async with db_pool.acquire() as conn:
+    try:
+        # Убираем channel_binding=require и заменяем sslmode=require на sslmode=prefer
+        clean_url = database_url.replace("&channel_binding=require", "").replace("sslmode=require", "sslmode=prefer")
+        conn = await asyncpg.connect(clean_url)
         # Создаем таблицу models
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS models (
@@ -173,6 +177,11 @@ async def create_tables():
                 VALUES ('Sample Model', 'SAMPLE001', 'Sample Brand', 'sample', 'This is a sample model', true)
             """)
             print("✅ Sample model added")
+        
+        await conn.close()
+            
+    except Exception as e:
+        print(f"⚠️ Error creating tables: {e}")
 
 # Создание FastAPI приложения
 app = FastAPI(
