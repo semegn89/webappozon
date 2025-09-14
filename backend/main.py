@@ -153,6 +153,18 @@ async def create_tables():
             )
         """)
         
+        # Создаем таблицу сообщений тикетов
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS ticket_messages (
+                id SERIAL PRIMARY KEY,
+                ticket_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                message TEXT NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE
+            )
+        """)
+        
         # Добавляем тестовые данные если таблицы пустые
         result = await conn.fetchval("SELECT COUNT(*) FROM models")
         if result == 0:
@@ -756,6 +768,87 @@ async def create_ticket(ticket_data: dict):
     except Exception as e:
         print(f"⚠️ Error creating ticket: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create ticket: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
+
+# ===== TICKET MESSAGES ENDPOINTS =====
+
+@app.get("/api/v1/tickets/{ticket_id}/messages")
+async def get_ticket_messages(ticket_id: int):
+    """Получить сообщения тикета"""
+    conn = await get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database not available")
+    
+    try:
+        # Проверяем существование тикета
+        ticket = await conn.fetchrow("SELECT id FROM tickets WHERE id = $1", ticket_id)
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Ticket not found")
+        
+        # Получаем сообщения
+        messages = await conn.fetch("""
+            SELECT id, ticket_id, user_id, message, created_at
+            FROM ticket_messages 
+            WHERE ticket_id = $1 
+            ORDER BY created_at ASC
+        """, ticket_id)
+        
+        return [{
+            "id": msg["id"],
+            "ticket_id": msg["ticket_id"],
+            "user_id": msg["user_id"],
+            "message": msg["message"],
+            "created_at": msg["created_at"].isoformat() if msg["created_at"] else None
+        } for msg in messages]
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"⚠️ Error getting ticket messages: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get messages: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
+
+@app.post("/api/v1/tickets/{ticket_id}/messages")
+async def create_ticket_message(ticket_id: int, message_data: dict):
+    """Создать сообщение в тикете"""
+    conn = await get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database not available")
+    
+    try:
+        # Проверяем существование тикета
+        ticket = await conn.fetchrow("SELECT id FROM tickets WHERE id = $1", ticket_id)
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Ticket not found")
+        
+        # Создаем сообщение
+        row = await conn.fetchrow("""
+            INSERT INTO ticket_messages (ticket_id, user_id, message)
+            VALUES ($1, $2, $3)
+            RETURNING id, ticket_id, user_id, message, created_at
+        """, 
+            ticket_id,
+            message_data.get("user_id", 1),
+            message_data.get("message", "")
+        )
+        
+        return {
+            "id": row["id"],
+            "ticket_id": row["ticket_id"],
+            "user_id": row["user_id"],
+            "message": row["message"],
+            "created_at": row["created_at"].isoformat() if row["created_at"] else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"⚠️ Error creating ticket message: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create message: {str(e)}")
     finally:
         if conn:
             await conn.close()
