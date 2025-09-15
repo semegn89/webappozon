@@ -74,9 +74,21 @@ const Admin: React.FC = () => {
   }
 
   const handleModelFormSuccess = () => {
+    console.info('[Admin] Model form success - invalidating queries and switching to models tab')
+    
+    // Принудительно инвалидируем все связанные запросы
     queryClient.invalidateQueries({ queryKey: ['admin-models'] })
     queryClient.invalidateQueries({ queryKey: ['models'] })
-    setActiveTab('models') // переключаем на вкладку моделей
+    queryClient.invalidateQueries({ queryKey: ['admin-stats'] })
+    
+    // Переключаем на вкладку моделей для показа результата
+    setActiveTab('models')
+    
+    // Дополнительно делаем рефетч через небольшую задержку
+    setTimeout(() => {
+      console.info('[Admin] Refetching models after success')
+      queryClient.refetchQueries({ queryKey: ['admin-models'] })
+    }, 500)
   }
 
   // Проверка аутентификации

@@ -107,11 +107,22 @@ const ModelForm: React.FC<ModelFormProps> = ({ isOpen, onClose, onSuccess, model
 
       console.info('[ModelForm] Request successful', response)
       
-      // Показываем успешное сообщение
-      alert(model ? 'Модель успешно обновлена!' : 'Модель успешно создана!')
+      // Проверяем успешность операции
+      const isSuccess = response && (response.id || response.status === 201 || response.status === 200)
       
-      onSuccess()
-      onClose()
+      if (isSuccess) {
+        console.info('[ModelForm] Operation successful, calling onSuccess')
+        // НЕ показываем навязчивый alert для успеха
+        // alert(model ? 'Модель успешно обновлена!' : 'Модель успешно создана!')
+        
+        // Вызываем onSuccess для обновления списка
+        onSuccess()
+        onClose()
+      } else {
+        console.warn('[ModelForm] Response indicates failure', response)
+        setError('Операция завершена, но результат неясен. Проверьте список моделей.')
+        // Не закрываем форму при неясном результате
+      }
     } catch (err: any) {
       console.error('[ModelForm] Request failed', err)
       const errorMessage = err.response?.data?.detail || err.message || 'Произошла ошибка при сохранении модели'
@@ -123,6 +134,7 @@ const ModelForm: React.FC<ModelFormProps> = ({ isOpen, onClose, onSuccess, model
       })
       
       setError(errorMessage)
+      // Показываем ошибку только при реальной ошибке
       alert(`Ошибка: ${errorMessage}`)
     } finally {
       setIsLoading(false)

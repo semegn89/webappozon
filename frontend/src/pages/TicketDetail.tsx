@@ -34,9 +34,21 @@ const TicketDetail: React.FC = () => {
     },
     onSuccess: (response) => {
       console.info('[TicketDetail] Message sent successfully', response)
+      
+      // Очищаем поле ввода
       setNewMessage('')
+      
+      // Принудительно инвалидируем и рефетчим сообщения
       queryClient.invalidateQueries({ queryKey: ['ticket-messages', id] })
-      alert('Сообщение отправлено!')
+      
+      // Дополнительно делаем рефетч через небольшую задержку
+      setTimeout(() => {
+        console.info('[TicketDetail] Refetching messages after success')
+        queryClient.refetchQueries({ queryKey: ['ticket-messages', id] })
+      }, 300)
+      
+      // НЕ показываем навязчивый alert для успеха
+      // alert('Сообщение отправлено!')
     },
     onError: (error: any) => {
       console.error('[TicketDetail] Failed to send message', error)
@@ -47,6 +59,8 @@ const TicketDetail: React.FC = () => {
         data: error.response?.data,
         message: errorMessage
       })
+      
+      // Показываем ошибку только при реальной ошибке
       alert(`Ошибка отправки: ${errorMessage}`)
     }
   })
@@ -81,6 +95,26 @@ const TicketDetail: React.FC = () => {
       url: `/tickets/${id}/messages`
     })
     
+    // Оптимистическое обновление - добавляем временное сообщение
+    const tempMessage = {
+      id: `temp-${Date.now()}`,
+      message: newMessage.trim(),
+      user_id: isAdmin ? 0 : user?.id,
+      created_at: new Date().toISOString(),
+      temp: true,
+      status: 'sending'
+    }
+    
+    // Добавляем временное сообщение в кэш
+    queryClient.setQueryData(['ticket-messages', id], (oldData: any) => {
+      if (!oldData) return [tempMessage]
+      return [...oldData, tempMessage]
+    })
+    
+    // Очищаем поле ввода сразу
+    setNewMessage('')
+    
+    // Отправляем сообщение
     sendMessageMutation.mutate(messageData)
   }
 
@@ -218,7 +252,9 @@ const TicketDetail: React.FC = () => {
                   color: message.user_id === user?.id ? 'white' : 'var(--tg-theme-text-color)',
                   borderRadius: '8px',
                   marginLeft: message.user_id === user?.id ? '20%' : '0',
-                  marginRight: message.user_id === user?.id ? '0' : '20%'
+                  marginRight: message.user_id === user?.id ? '0' : '20%',
+                  opacity: message.temp ? 0.7 : 1,
+                  border: message.temp ? '1px dashed rgba(0,0,0,0.3)' : 'none'
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -233,10 +269,27 @@ const TicketDetail: React.FC = () => {
                         (внутренняя заметка)
                       </span>
                     )}
+                    {message.temp && (
+                      <span style={{ fontSize: '10px', opacity: 0.8, fontStyle: 'italic' }}>
+                        {message.status === 'sending' ? '(отправляется...)' : '(временное)'}
+                      </span>
+                    )}
                   </div>
-                  <span style={{ fontSize: '12px', opacity: 0.8 }}>
-                    {new Date(message.created_at).toLocaleString('ru-RU')}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '12px', opacity: 0.8 }}>
+                      {new Date(message.created_at).toLocaleString('ru-RU')}
+                    </span>
+                    {message.temp && message.status === 'sending' && (
+                      <div style={{ 
+                        width: '12px', 
+                        height: '12px', 
+                        border: '2px solid rgba(255,255,255,0.3)', 
+                        borderTop: '2px solid white', 
+                        borderRadius: '50%', 
+                        animation: 'spin 1s linear infinite' 
+                      }} />
+                    )}
+                  </div>
                 </div>
                 <div style={{ whiteSpace: 'pre-wrap' }}>{message.message}</div>
               </div>
