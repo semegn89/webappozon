@@ -47,7 +47,9 @@ const ModelDetail: React.FC = () => {
     }
   }
 
-  const getFileIcon = (fileType: string): string => {
+  const getFileIcon = (fileType: string | undefined): string => {
+    if (!fileType) return '📎'
+    
     switch (fileType.toLowerCase()) {
       case 'pdf':
         return '📄'
@@ -191,12 +193,11 @@ const ModelDetail: React.FC = () => {
                   <div key={file.id} className="list-item">
                     <div className="list-item-header">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ fontSize: '24px' }}>{getFileIcon(file.file_type)}</span>
+                        <span style={{ fontSize: '24px' }}>{getFileIcon(file.mime_type)}</span>
                         <div>
-                          <div className="list-item-title">{file.title}</div>
+                          <div className="list-item-title">{file.filename}</div>
                           <div className="list-item-subtitle">
-                            {file.file_type.toUpperCase()} • {formatFileSize(file.size_bytes)}
-                            {file.version && ` • Версия ${file.version}`}
+                            {file.mime_type?.toUpperCase() || 'FILE'} • {formatFileSize(file.file_size)}
                           </div>
                           <div className="list-item-meta">
                             {new Date(file.created_at).toLocaleDateString('ru-RU')}
@@ -205,7 +206,7 @@ const ModelDetail: React.FC = () => {
                       </div>
                       
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        {(file.is_document || file.is_image) && (
+                        {(file.mime_type?.includes('pdf') || file.mime_type?.includes('image')) && (
                           <button
                             className="btn btn-small btn-secondary"
                             onClick={() => handleView(file.id)}
@@ -216,7 +217,7 @@ const ModelDetail: React.FC = () => {
                         )}
                         <button
                           className="btn btn-small"
-                          onClick={() => handleDownload(file.id, `${file.title}.${file.file_type}`)}
+                          onClick={() => handleDownload(file.id, file.filename)}
                         >
                           <Download size={14} />
                           Скачать
