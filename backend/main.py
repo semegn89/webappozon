@@ -111,7 +111,7 @@ async def get_current_user():
 
 # ===== MODELS ENDPOINTS =====
 
-# Глобальное хранилище моделей (временное решение)
+# Глобальное хранилище данных (постоянное решение)
 models_storage = [
     {
         "id": 1,
@@ -136,6 +136,47 @@ models_storage = [
         "is_active": True,
         "created_at": "2024-01-01T00:00:00Z",
         "updated_at": "2024-01-01T00:00:00Z"
+    }
+]
+
+# Хранилище файлов моделей
+model_files_storage = [
+    {
+        "id": 1,
+        "model_id": 1,
+        "filename": "test.pdf",
+        "filepath": "/uploads/test.pdf",
+        "file_size": 1024,
+        "mime_type": "application/pdf",
+        "comment": "Test file",
+        "created_at": "2024-01-01T00:00:00Z",
+        "url": "https://api.gakshop.com/uploads/test.pdf"
+    }
+]
+
+# Хранилище тикетов
+tickets_storage = [
+    {
+        "id": 1,
+        "subject": "Test Ticket",
+        "description": "Test ticket description",
+        "status": "open",
+        "priority": "normal",
+        "user_id": 1,
+        "model_id": 1,
+        "created_at": "2024-01-01T00:00:00Z",
+        "closed_at": None
+    }
+]
+
+# Хранилище сообщений тикетов
+ticket_messages_storage = [
+    {
+        "id": 1,
+        "ticket_id": 1,
+        "user_id": 1,
+        "message": "Initial ticket message",
+        "created_at": "2024-01-01T00:00:00Z"
     }
 ]
 
@@ -278,26 +319,34 @@ async def get_ticket(ticket_id: int):
 @app.get("/api/v1/tickets/{ticket_id}/messages")
 async def get_ticket_messages(ticket_id: int):
     """Получить сообщения тикета"""
-    return [
-        {
-            "id": 1,
-            "ticket_id": ticket_id,
-            "user_id": 1,
-            "message": "Test message",
-            "created_at": "2024-01-01T00:00:00Z"
-        }
-    ]
+    print(f"[API] Getting messages for ticket {ticket_id}")
+    # Фильтруем сообщения по ticket_id
+    messages = [m for m in ticket_messages_storage if m["ticket_id"] == ticket_id]
+    print(f"[API] Found {len(messages)} messages for ticket {ticket_id}")
+    return messages
 
 @app.post("/api/v1/tickets/{ticket_id}/messages")
 async def create_ticket_message(ticket_id: int, message_data: dict):
     """Создать сообщение в тикете"""
-    return {
-        "id": 2,
+    import time
+    
+    # Генерируем новый ID для сообщения
+    new_message_id = max([m["id"] for m in ticket_messages_storage], default=0) + 1
+    
+    # Создаем новое сообщение
+    new_message = {
+        "id": new_message_id,
         "ticket_id": ticket_id,
         "user_id": message_data.get("user_id", 1),
         "message": message_data.get("body", message_data.get("message", "")),
         "created_at": "2024-01-01T00:00:00Z"
     }
+    
+    # Добавляем в хранилище
+    ticket_messages_storage.append(new_message)
+    
+    print(f"[API] Created message: {new_message}")
+    return new_message
 
 # ===== ADMIN ENDPOINTS =====
 
@@ -319,18 +368,10 @@ async def get_model_files(model_id: int):
     """Получить список файлов модели"""
     try:
         print(f"[API] Getting files for model {model_id}")
-        return [
-            {
-                "id": 1,
-                "filename": "test.pdf",
-                "filepath": "/uploads/test.pdf",
-                "file_size": 1024,
-                "mime_type": "application/pdf",
-                "comment": "",
-                "created_at": "2024-01-01T00:00:00Z",
-                "url": "https://api.gakshop.com/uploads/test.pdf"
-            }
-        ]
+        # Фильтруем файлы по model_id
+        model_files = [f for f in model_files_storage if f["model_id"] == model_id]
+        print(f"[API] Found {len(model_files)} files for model {model_id}")
+        return model_files
     except Exception as e:
         print(f"[API] Error getting files for model {model_id}: {e}")
         return []
@@ -338,16 +379,29 @@ async def get_model_files(model_id: int):
 @app.post("/api/v1/models/{model_id}/files")
 async def upload_model_file(model_id: int, file_data: dict):
     """Загрузить файл для модели"""
-    return {
-        "id": 2,
-        "filename": "uploaded.pdf",
-        "filepath": "/uploads/uploaded.pdf",
-        "file_size": 2048,
-        "mime_type": "application/pdf",
-        "comment": "",
+    import time
+    
+    # Генерируем новый ID для файла
+    new_file_id = max([f["id"] for f in model_files_storage], default=0) + 1
+    
+    # Создаем новый файл
+    new_file = {
+        "id": new_file_id,
+        "model_id": model_id,
+        "filename": file_data.get("filename", "uploaded_file.pdf"),
+        "filepath": f"/uploads/model_{model_id}/file_{new_file_id}.pdf",
+        "file_size": file_data.get("file_size", 2048),
+        "mime_type": file_data.get("mime_type", "application/pdf"),
+        "comment": file_data.get("comment", ""),
         "created_at": "2024-01-01T00:00:00Z",
-        "url": "https://api.gakshop.com/uploads/uploaded.pdf"
+        "url": f"https://api.gakshop.com/uploads/model_{model_id}/file_{new_file_id}.pdf"
     }
+    
+    # Добавляем в хранилище
+    model_files_storage.append(new_file)
+    
+    print(f"[API] Uploaded file: {new_file}")
+    return new_file
 
 @app.delete("/api/v1/models/{model_id}/files/{file_id}")
 async def delete_model_file(model_id: int, file_id: int):
