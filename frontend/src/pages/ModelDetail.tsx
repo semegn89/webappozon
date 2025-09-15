@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Download, Eye, FileText, Package } from 'lucide-react'
-import { modelsApi, filesApi } from '../services/api'
+import { modelsApi, ticketsApi } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 const ModelDetail: React.FC = () => {
@@ -18,16 +18,16 @@ const ModelDetail: React.FC = () => {
 
   const { data: files } = useQuery({
     queryKey: ['model-files', id],
-    queryFn: () => filesApi.getFiles({ model_id: Number(id) }),
-    enabled: !!id,
-    select: (data) => data.items
+    queryFn: () => ticketsApi.getModelFiles(Number(id)),
+    enabled: !!id
   })
 
   const handleDownload = async (fileId: number, filename: string) => {
     try {
-      const downloadData = await filesApi.getDownloadUrl(fileId)
+      // Используем прямой URL для скачивания
+      const downloadUrl = `https://api.gakshop.com/api/v1/files/${fileId}/download`
       const link = document.createElement('a')
-      link.href = downloadData.download_url
+      link.href = downloadUrl
       link.download = filename
       document.body.appendChild(link)
       link.click()
@@ -39,8 +39,9 @@ const ModelDetail: React.FC = () => {
 
   const handleView = async (fileId: number) => {
     try {
-      const downloadData = await filesApi.getDownloadUrl(fileId)
-      window.open(downloadData.download_url, '_blank')
+      // Используем прямой URL для просмотра
+      const viewUrl = `https://api.gakshop.com/api/v1/files/${fileId}/download`
+      window.open(viewUrl, '_blank')
     } catch (error) {
       console.error('View failed:', error)
     }

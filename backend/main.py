@@ -13,7 +13,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware
+# CORS middleware - более агрессивные настройки
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -23,11 +23,14 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:5173",
         "https://localhost:3000",
-        "https://localhost:5173"
+        "https://localhost:5173",
+        "*"  # Временно разрешаем все домены для отладки
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600,
 )
 
 # ===== BASIC ENDPOINTS =====
