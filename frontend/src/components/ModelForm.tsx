@@ -78,6 +78,8 @@ const ModelForm: React.FC<ModelFormProps> = ({ isOpen, onClose, onSuccess, model
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.info('[ModelForm] Submit started', { model: !!model, formData })
+    
     setIsLoading(true)
     setError('')
 
@@ -86,18 +88,42 @@ const ModelForm: React.FC<ModelFormProps> = ({ isOpen, onClose, onSuccess, model
         ...formData
       }
 
+      console.info('[ModelForm] Sending request', { 
+        method: model ? 'PUT' : 'POST', 
+        data,
+        url: model ? `/models/${model.id}` : '/models'
+      })
+
+      let response
       if (model) {
         // Редактирование существующей модели
-        await modelsApi.updateModel(model.id, data)
+        console.info('[ModelForm] Updating model', model.id)
+        response = await modelsApi.updateModel(model.id, data)
       } else {
         // Создание новой модели
-        await modelsApi.createModel(data)
+        console.info('[ModelForm] Creating new model')
+        response = await modelsApi.createModel(data)
       }
 
+      console.info('[ModelForm] Request successful', response)
+      
+      // Показываем успешное сообщение
+      alert(model ? 'Модель успешно обновлена!' : 'Модель успешно создана!')
+      
       onSuccess()
       onClose()
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Произошла ошибка при сохранении модели')
+      console.error('[ModelForm] Request failed', err)
+      const errorMessage = err.response?.data?.detail || err.message || 'Произошла ошибка при сохранении модели'
+      console.error('[ModelForm] Error details:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        message: errorMessage
+      })
+      
+      setError(errorMessage)
+      alert(`Ошибка: ${errorMessage}`)
     } finally {
       setIsLoading(false)
     }

@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTelegram } from '../contexts/TelegramContext'
 import Navigation from './Navigation'
@@ -11,6 +12,10 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth()
   const { isReady } = useTelegram()
+  const location = useLocation()
+
+  // Проверяем, находимся ли мы в админ-панели
+  const isAdminPage = location.pathname.startsWith('/admin')
 
   // Показываем загрузку пока не готовы
   if (!isReady || isLoading) {
@@ -31,7 +36,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="app">
-      <Navigation />
+      {/* Скрываем Navigation в админ-панели */}
+      {!isAdminPage && <Navigation />}
       <main className="main">
         {children}
       </main>

@@ -2003,3 +2003,78 @@ body {
     color: white;
   }
 }
+
+/* Analytics Styles */
+.analytics-content {
+  padding: 24px;
+}
+
+.analytics-content h2 {
+  margin-bottom: 16px;
+  color: #1f2937;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.analytics-content p {
+  color: #6b7280;
+  margin-bottom: 24px;
+  font-size: 16px;
+}
+
+.analytics-placeholder {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.placeholder-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s;
+}
+
+.placeholder-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.placeholder-card h3 {
+  margin-bottom: 12px;
+  color: #1f2937;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.placeholder-card p {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Dark mode for analytics */
+@media (prefers-color-scheme: dark) {
+  .analytics-content h2 {
+    color: white;
+  }
+  
+  .analytics-content p {
+    color: #d1d5db;
+  }
+  
+  .placeholder-card {
+    background: #374151;
+    border-color: #4b5563;
+  }
+  
+  .placeholder-card h3 {
+    color: white;
+  }
+  
+  .placeholder-card p {
+    color: #d1d5db;
+  }
+}

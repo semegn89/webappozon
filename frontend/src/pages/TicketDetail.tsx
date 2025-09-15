@@ -28,16 +28,42 @@ const TicketDetail: React.FC = () => {
 
   // Мутация для отправки сообщения
   const sendMessageMutation = useMutation({
-    mutationFn: (data: { body: string }) => ticketsApi.createTicketMessage(Number(id), data),
-    onSuccess: () => {
+    mutationFn: (data: { body: string, user_id?: number }) => {
+      console.info('[TicketDetail] Mutation function called', { data, ticketId: id })
+      return ticketsApi.createTicketMessage(Number(id), data)
+    },
+    onSuccess: (response) => {
+      console.info('[TicketDetail] Message sent successfully', response)
       setNewMessage('')
       queryClient.invalidateQueries({ queryKey: ['ticket-messages', id] })
+      alert('Сообщение отправлено!')
+    },
+    onError: (error: any) => {
+      console.error('[TicketDetail] Failed to send message', error)
+      const errorMessage = error.response?.data?.detail || error.message || 'Не удалось отправить сообщение'
+      console.error('[TicketDetail] Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: errorMessage
+      })
+      alert(`Ошибка отправки: ${errorMessage}`)
     }
   })
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim()) return
+    console.info('[TicketDetail] Send message form submitted', { 
+      ticketId: id, 
+      messageLength: newMessage.trim().length,
+      pathname: window.location.pathname
+    })
+    
+    if (!newMessage.trim()) {
+      console.warn('[TicketDetail] Empty message, not sending')
+      alert('Введите сообщение!')
+      return
+    }
     
     // Определяем, кто отправляет сообщение
     // Если мы в админ панели - отправляем как администратор (user_id: 0)
@@ -47,6 +73,13 @@ const TicketDetail: React.FC = () => {
       body: newMessage.trim(),
       user_id: isAdmin ? 0 : undefined // 0 = администратор, undefined = пользователь
     }
+    
+    console.info('[TicketDetail] Sending message', {
+      ticketId: id,
+      messageData,
+      isAdmin,
+      url: `/tickets/${id}/messages`
+    })
     
     sendMessageMutation.mutate(messageData)
   }

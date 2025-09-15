@@ -57,6 +57,7 @@ const Admin: React.FC = () => {
 
   // Функции для работы с моделями
   const handleCreateModel = () => {
+    console.info('[Admin] Create model button clicked')
     setEditingModel(null)
     setIsModelFormOpen(true)
   }
@@ -386,7 +387,13 @@ const Admin: React.FC = () => {
                     <p>Добавить инструкцию</p>
                   </div>
                 </button>
-                <button className="quick-action-btn" onClick={() => setActiveTab('dashboard')}>
+                <button 
+                  className="quick-action-btn" 
+                  onClick={() => {
+                    console.info('[Admin] Analytics button clicked')
+                    navigate('/admin/analytics')
+                  }}
+                >
                   <BarChart3 size={24} color="white" />
                   <div>
                     <h3>Аналитика</h3>
