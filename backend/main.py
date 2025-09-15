@@ -118,6 +118,22 @@ models_storage = [
         "name": "Test Model 1",
         "description": "Test model for demo purposes",
         "category": "test",
+        "brand": "Test Brand",
+        "code": "TM001",
+        "image_url": "https://example.com/image1.jpg",
+        "is_active": True,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+        "id": 2,
+        "name": "Test Model 2",
+        "description": "Another test model",
+        "category": "demo",
+        "brand": "Demo Brand",
+        "code": "TM002",
+        "image_url": "https://example.com/image2.jpg",
+        "is_active": True,
         "created_at": "2024-01-01T00:00:00Z",
         "updated_at": "2024-01-01T00:00:00Z"
     }
@@ -126,6 +142,7 @@ models_storage = [
 @app.get("/api/v1/models")
 async def get_models():
     """Получить список моделей"""
+    print(f"[API] Getting models, count: {len(models_storage)}")
     return {
         "models": models_storage
     }
@@ -162,12 +179,15 @@ async def create_model(model_data: dict):
 @app.get("/api/v1/models/{model_id}")
 async def get_model(model_id: int):
     """Получить модель по ID"""
+    print(f"[API] Getting model {model_id}")
     # Ищем модель в хранилище
     for model in models_storage:
         if model["id"] == model_id:
+            print(f"[API] Found model: {model['name']}")
             return model
     
     # Если не найдена, возвращаем ошибку
+    print(f"[API] Model {model_id} not found")
     raise HTTPException(status_code=404, detail="Model not found")
 
 @app.put("/api/v1/models/{model_id}")
