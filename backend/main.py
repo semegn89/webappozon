@@ -16,9 +16,17 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://gakshop.com",
+        "https://www.gakshop.com", 
+        "https://api.gakshop.com",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://localhost:3000",
+        "https://localhost:5173"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -245,18 +253,23 @@ async def get_admin_stats():
 @app.get("/api/v1/models/{model_id}/files")
 async def get_model_files(model_id: int):
     """Получить список файлов модели"""
-    return [
-        {
-            "id": 1,
-            "filename": "test.pdf",
-            "filepath": "/uploads/test.pdf",
-            "file_size": 1024,
-            "mime_type": "application/pdf",
-            "comment": "",
-            "created_at": "2024-01-01T00:00:00Z",
-            "url": "https://api.gakshop.com/uploads/test.pdf"
-        }
-    ]
+    try:
+        print(f"[API] Getting files for model {model_id}")
+        return [
+            {
+                "id": 1,
+                "filename": "test.pdf",
+                "filepath": "/uploads/test.pdf",
+                "file_size": 1024,
+                "mime_type": "application/pdf",
+                "comment": "",
+                "created_at": "2024-01-01T00:00:00Z",
+                "url": "https://api.gakshop.com/uploads/test.pdf"
+            }
+        ]
+    except Exception as e:
+        print(f"[API] Error getting files for model {model_id}: {e}")
+        return []
 
 @app.post("/api/v1/models/{model_id}/files")
 async def upload_model_file(model_id: int, file_data: dict):
