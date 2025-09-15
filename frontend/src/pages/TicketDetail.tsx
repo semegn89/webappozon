@@ -20,10 +20,12 @@ const TicketDetail: React.FC = () => {
     enabled: !!id
   })
 
-  const { data: messages, isLoading: messagesLoading } = useQuery({
+  const { data: messages, isLoading: messagesLoading, refetch: refetchMessages } = useQuery({
     queryKey: ['ticket-messages', id],
     queryFn: () => ticketsApi.getTicketMessages(Number(id)),
-    enabled: !!id
+    enabled: !!id,
+    refetchOnWindowFocus: true,
+    refetchInterval: 5000 // Автоматический рефетч каждые 5 секунд
   })
 
   // Мутация для отправки сообщения
@@ -232,7 +234,19 @@ const TicketDetail: React.FC = () => {
 
       {/* Переписка */}
       <div className="card">
-        <h3>Переписка</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h3>Переписка</h3>
+          <button 
+            className="btn btn-small btn-secondary"
+            onClick={() => {
+              console.info('[TicketDetail] Manual refresh messages')
+              refetchMessages()
+            }}
+            disabled={messagesLoading}
+          >
+            {messagesLoading ? 'Обновление...' : 'Обновить'}
+          </button>
+        </div>
         
         {messagesLoading ? (
           <LoadingSpinner message="Загрузка сообщений..." />

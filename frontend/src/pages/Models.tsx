@@ -1,9 +1,33 @@
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Search, Filter, Package, Eye, Download } from 'lucide-react'
-import { modelsApi } from '../services/api'
+import { Search, Filter, Package, Eye, Download, FileText } from 'lucide-react'
+import { modelsApi, ticketsApi } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
+
+// Компонент для отображения файлов модели
+const ModelFiles: React.FC<{ modelId: number }> = ({ modelId }) => {
+  const { data: files, isLoading } = useQuery({
+    queryKey: ['model-files', modelId],
+    queryFn: () => ticketsApi.getModelFiles(modelId),
+    enabled: !!modelId
+  })
+
+  if (isLoading) return <div style={{ fontSize: '12px', opacity: 0.7 }}>Загрузка файлов...</div>
+  
+  const filesList = Array.isArray(files) ? files : []
+  
+  if (filesList.length === 0) {
+    return <div style={{ fontSize: '12px', opacity: 0.7 }}>Нет файлов</div>
+  }
+
+  return (
+    <div style={{ fontSize: '12px', opacity: 0.7, display: 'flex', alignItems: 'center', gap: '4px' }}>
+      <FileText size={12} />
+      <span>{filesList.length} файл{filesList.length > 1 ? 'ов' : ''}</span>
+    </div>
+  )
+}
 
 const Models: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -26,9 +50,11 @@ const Models: React.FC = () => {
     is_active: true
   }
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['models', queryParams],
-    queryFn: () => modelsApi.getModels(queryParams)
+    queryFn: () => modelsApi.getModels(queryParams),
+    refetchOnWindowFocus: true,
+    refetchInterval: 10000 // Автоматический рефетч каждые 10 секунд
   })
 
   const handleSearch = () => {
@@ -95,6 +121,16 @@ const Models: React.FC = () => {
           >
             <Filter size={16} />
             Фильтры
+          </button>
+          <button 
+            className="btn btn-small btn-secondary" 
+            onClick={() => {
+              console.info('[Models] Manual refresh models')
+              refetch()
+            }}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Обновление...' : 'Обновить'}
           </button>
           {(searchQuery || selectedBrand || selectedCategory) && (
             <button className="btn btn-small btn-secondary" onClick={clearFilters}>
@@ -196,6 +232,9 @@ const Models: React.FC = () => {
                   </div>
                   <div className="model-date">
                     {new Date(model.created_at).toLocaleDateString('ru-RU')}
+                  </div>
+                  <div style={{ marginTop: '8px' }}>
+                    <ModelFiles modelId={model.id} />
                   </div>
                 </div>
               </div>

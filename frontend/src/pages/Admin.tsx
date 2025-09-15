@@ -20,23 +20,29 @@ const Admin: React.FC = () => {
   const [password, setPassword] = useState('')
 
   // Получаем статистику
-  const { data: statsData, isLoading: statsLoading } = useQuery({
+  const { data: statsData, isLoading: statsLoading, refetch: refetchStats } = useQuery({
     queryKey: ['admin-stats'],
-    queryFn: adminApi.getAdminStats
+    queryFn: adminApi.getAdminStats,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000 // Автоматический рефетч каждые 15 секунд
   })
 
   // Получаем модели
-  const { data: modelsData } = useQuery({
+  const { data: modelsData, refetch: refetchModels } = useQuery({
     queryKey: ['admin-models'],
     queryFn: () => modelsApi.getModels({ page: 1, page_size: 10 }),
-    enabled: activeTab === 'models'
+    enabled: activeTab === 'models',
+    refetchOnWindowFocus: true,
+    refetchInterval: 10000 // Автоматический рефетч каждые 10 секунд
   })
 
   // Получаем тикеты
-  const { data: ticketsData } = useQuery({
+  const { data: ticketsData, refetch: refetchTickets } = useQuery({
     queryKey: ['admin-tickets'],
     queryFn: () => ticketsApi.getTickets({ page: 1, page_size: 10 }),
-    enabled: activeTab === 'tickets'
+    enabled: activeTab === 'tickets',
+    refetchOnWindowFocus: true,
+    refetchInterval: 10000 // Автоматический рефетч каждые 10 секунд
   })
 
 
@@ -310,6 +316,17 @@ const Admin: React.FC = () => {
               onClick={() => navigate('/')}
             >
               ← Вернуться в приложение
+            </button>
+            <button 
+              className="btn btn-secondary"
+              onClick={() => {
+                console.info('[Admin] Manual refresh all data')
+                refetchStats()
+                refetchModels()
+                refetchTickets()
+              }}
+            >
+              Обновить данные
             </button>
             <button 
               className="logout-btn"
