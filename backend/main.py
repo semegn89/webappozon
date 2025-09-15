@@ -111,63 +111,104 @@ async def get_current_user():
 
 # ===== MODELS ENDPOINTS =====
 
+# Глобальное хранилище моделей (временное решение)
+models_storage = [
+    {
+        "id": 1,
+        "name": "Test Model 1",
+        "description": "Test model for demo purposes",
+        "category": "test",
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+    }
+]
+
 @app.get("/api/v1/models")
 async def get_models():
     """Получить список моделей"""
     return {
-        "models": [
-            {
-                "id": 1,
-                "name": "Test Model 1",
-                "description": "Test model for demo purposes",
-                "category": "test",
-                "created_at": "2024-01-01T00:00:00Z",
-                "updated_at": "2024-01-01T00:00:00Z"
-            }
-        ]
+        "models": models_storage
     }
 
 @app.post("/api/v1/models")
 async def create_model(model_data: dict):
     """Создать новую модель"""
-    return {
-        "id": 2,
+    import time
+    
+    # Генерируем новый ID
+    new_id = max([m["id"] for m in models_storage], default=0) + 1
+    
+    # Создаем новую модель
+    new_model = {
+        "id": new_id,
         "name": model_data.get("name", "New Model"),
         "description": model_data.get("description", ""),
         "category": model_data.get("category", "general"),
+        "brand": model_data.get("brand", ""),
+        "code": model_data.get("code", ""),
+        "image_url": model_data.get("image_url", ""),
+        "is_active": model_data.get("is_active", True),
         "created_at": "2024-01-01T00:00:00Z",
         "updated_at": "2024-01-01T00:00:00Z"
     }
+    
+    # Добавляем в хранилище
+    models_storage.append(new_model)
+    
+    print(f"[API] Created model: {new_model}")
+    
+    return new_model
 
 @app.get("/api/v1/models/{model_id}")
 async def get_model(model_id: int):
     """Получить модель по ID"""
-    return {
-        "id": model_id,
-        "name": f"Model {model_id}",
-        "description": f"Description for model {model_id}",
-        "category": "test",
-        "created_at": "2024-01-01T00:00:00Z",
-        "updated_at": "2024-01-01T00:00:00Z",
-        "files": []
-    }
+    # Ищем модель в хранилище
+    for model in models_storage:
+        if model["id"] == model_id:
+            return model
+    
+    # Если не найдена, возвращаем ошибку
+    raise HTTPException(status_code=404, detail="Model not found")
 
 @app.put("/api/v1/models/{model_id}")
 async def update_model(model_id: int, model_data: dict):
     """Обновить модель"""
-    return {
-        "id": model_id,
-        "name": model_data.get("name", f"Updated Model {model_id}"),
-        "description": model_data.get("description", ""),
-        "category": model_data.get("category", "general"),
-        "created_at": "2024-01-01T00:00:00Z",
-        "updated_at": "2024-01-01T00:00:00Z"
-    }
+    # Ищем модель в хранилище
+    for i, model in enumerate(models_storage):
+        if model["id"] == model_id:
+            # Обновляем модель
+            updated_model = {
+                **model,
+                "name": model_data.get("name", model["name"]),
+                "description": model_data.get("description", model["description"]),
+                "category": model_data.get("category", model["category"]),
+                "brand": model_data.get("brand", model.get("brand", "")),
+                "code": model_data.get("code", model.get("code", "")),
+                "image_url": model_data.get("image_url", model.get("image_url", "")),
+                "is_active": model_data.get("is_active", model.get("is_active", True)),
+                "updated_at": "2024-01-01T00:00:00Z"
+            }
+            models_storage[i] = updated_model
+            
+            print(f"[API] Updated model: {updated_model}")
+            return updated_model
+    
+    # Если не найдена, возвращаем ошибку
+    raise HTTPException(status_code=404, detail="Model not found")
 
 @app.delete("/api/v1/models/{model_id}")
 async def delete_model(model_id: int):
     """Удалить модель"""
-    return {"message": "Model deleted successfully"}
+    # Ищем модель в хранилище
+    for i, model in enumerate(models_storage):
+        if model["id"] == model_id:
+            # Удаляем модель
+            deleted_model = models_storage.pop(i)
+            print(f"[API] Deleted model: {deleted_model}")
+            return {"message": "Model deleted successfully"}
+    
+    # Если не найдена, возвращаем ошибку
+    raise HTTPException(status_code=404, detail="Model not found")
 
 # ===== TICKETS ENDPOINTS =====
 
