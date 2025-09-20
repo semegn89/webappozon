@@ -38,6 +38,12 @@ app.add_middleware(
 @app.options("/{path:path}")
 async def options_handler(path: str):
     """Обработчик OPTIONS запросов для CORS"""
+    from fastapi import Response
+    response = Response()
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Max-Age"] = "600"
     return {"message": "OK"}
 
 @app.get("/")
@@ -136,6 +142,18 @@ models_storage = [
         "is_active": True,
         "created_at": "2024-01-01T00:00:00Z",
         "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+        "id": 3,
+        "name": "Test Model 3",
+        "description": "Third test model",
+        "category": "example",
+        "brand": "Example Brand",
+        "code": "TM003",
+        "image_url": "https://example.com/image3.jpg",
+        "is_active": True,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
     }
 ]
 
@@ -151,6 +169,17 @@ model_files_storage = [
         "comment": "Test file",
         "created_at": "2024-01-01T00:00:00Z",
         "url": "https://api.gakshop.com/uploads/test.pdf"
+    },
+    {
+        "id": 2,
+        "model_id": 3,
+        "filename": "model3_manual.pdf",
+        "filepath": "/uploads/model3_manual.pdf",
+        "file_size": 2048,
+        "mime_type": "application/pdf",
+        "comment": "Manual for model 3",
+        "created_at": "2024-01-01T00:00:00Z",
+        "url": "https://api.gakshop.com/uploads/model3_manual.pdf"
     }
 ]
 
