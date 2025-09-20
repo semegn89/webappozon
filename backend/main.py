@@ -5,6 +5,8 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import os
+import json
+from pathlib import Path
 
 # Создаем приложение
 app = FastAPI(
@@ -115,10 +117,46 @@ async def get_current_user():
         "created_at": "2024-01-01T00:00:00Z"
     }
 
+# ===== PERSISTENT STORAGE =====
+
+# Путь к файлам данных
+DATA_DIR = Path("/tmp/ozon_data")
+DATA_DIR.mkdir(exist_ok=True)
+
+MODELS_FILE = DATA_DIR / "models.json"
+FILES_FILE = DATA_DIR / "files.json"
+TICKETS_FILE = DATA_DIR / "tickets.json"
+MESSAGES_FILE = DATA_DIR / "messages.json"
+
+def load_data(file_path: Path, default_data: list) -> list:
+    """Загрузить данные из файла"""
+    try:
+        if file_path.exists():
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                print(f"[STORAGE] Loaded {len(data)} items from {file_path}")
+                return data
+    except Exception as e:
+        print(f"[STORAGE] Error loading {file_path}: {e}")
+    
+    print(f"[STORAGE] Using default data for {file_path}")
+    return default_data
+
+def save_data(file_path: Path, data: list) -> bool:
+    """Сохранить данные в файл"""
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"[STORAGE] Saved {len(data)} items to {file_path}")
+        return True
+    except Exception as e:
+        print(f"[STORAGE] Error saving {file_path}: {e}")
+        return False
+
 # ===== MODELS ENDPOINTS =====
 
-# Глобальное хранилище данных (постоянное решение)
-models_storage = [
+# Дефолтные данные для первого запуска
+DEFAULT_MODELS = [
     {
         "id": 1,
         "name": "Test Model 1",
@@ -157,8 +195,11 @@ models_storage = [
     }
 ]
 
-# Хранилище файлов моделей
-model_files_storage = [
+# Загружаем данные из файлов (или используем дефолтные)
+models_storage = load_data(MODELS_FILE, DEFAULT_MODELS)
+
+# Дефолтные данные для файлов
+DEFAULT_FILES = [
     {
         "id": 1,
         "model_id": 1,
@@ -183,8 +224,8 @@ model_files_storage = [
     }
 ]
 
-# Хранилище тикетов
-tickets_storage = [
+# Дефолтные данные для тикетов
+DEFAULT_TICKETS = [
     {
         "id": 1,
         "subject": "Test Ticket",
@@ -198,8 +239,8 @@ tickets_storage = [
     }
 ]
 
-# Хранилище сообщений тикетов
-ticket_messages_storage = [
+# Дефолтные данные для сообщений
+DEFAULT_MESSAGES = [
     {
         "id": 1,
         "ticket_id": 1,
@@ -208,6 +249,11 @@ ticket_messages_storage = [
         "created_at": "2024-01-01T00:00:00Z"
     }
 ]
+
+# Загружаем все данные из файлов
+model_files_storage = load_data(FILES_FILE, DEFAULT_FILES)
+tickets_storage = load_data(TICKETS_FILE, DEFAULT_TICKETS)
+ticket_messages_storage = load_data(MESSAGES_FILE, DEFAULT_MESSAGES)
 
 @app.get("/api/v1/models")
 async def get_models():
@@ -241,6 +287,9 @@ async def create_model(model_data: dict):
     
     # Добавляем в хранилище
     models_storage.append(new_model)
+    
+    # СОХРАНЯЕМ В ФАЙЛ для постоянства
+    save_data(MODELS_FILE, models_storage)
     
     print(f"[API] Created model: {new_model}")
     
@@ -280,6 +329,9 @@ async def update_model(model_id: int, model_data: dict):
             }
             models_storage[i] = updated_model
             
+            # СОХРАНЯЕМ В ФАЙЛ для постоянства
+            save_data(MODELS_FILE, models_storage)
+            
             print(f"[API] Updated model: {updated_model}")
             return updated_model
     
@@ -294,6 +346,10 @@ async def delete_model(model_id: int):
         if model["id"] == model_id:
             # Удаляем модель
             deleted_model = models_storage.pop(i)
+            
+            # СОХРАНЯЕМ В ФАЙЛ для постоянства
+            save_data(MODELS_FILE, models_storage)
+            
             print(f"[API] Deleted model: {deleted_model}")
             return {"message": "Model deleted successfully"}
     
@@ -374,6 +430,9 @@ async def create_ticket_message(ticket_id: int, message_data: dict):
     # Добавляем в хранилище
     ticket_messages_storage.append(new_message)
     
+    # СОХРАНЯЕМ В ФАЙЛ для постоянства
+    save_data(MESSAGES_FILE, ticket_messages_storage)
+    
     print(f"[API] Created message: {new_message}")
     return new_message
 
@@ -428,6 +487,9 @@ async def upload_model_file(model_id: int, file_data: dict):
     
     # Добавляем в хранилище
     model_files_storage.append(new_file)
+    
+    # СОХРАНЯЕМ В ФАЙЛ для постоянства
+    save_data(FILES_FILE, model_files_storage)
     
     print(f"[API] Uploaded file: {new_file}")
     return new_file
