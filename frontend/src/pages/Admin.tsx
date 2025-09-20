@@ -27,20 +27,18 @@ const Admin: React.FC = () => {
     refetchInterval: 15000 // Автоматический рефетч каждые 15 секунд
   })
 
-  // Получаем модели
+  // Получаем модели (загружаем всегда, не только на активной вкладке)
   const { data: modelsData, refetch: refetchModels } = useQuery({
     queryKey: ['admin-models'],
     queryFn: () => modelsApi.getModels({ page: 1, page_size: 10 }),
-    enabled: activeTab === 'models',
     refetchOnWindowFocus: true,
     refetchInterval: 10000 // Автоматический рефетч каждые 10 секунд
   })
 
-  // Получаем тикеты
+  // Получаем тикеты (загружаем всегда, не только на активной вкладке)
   const { data: ticketsData, refetch: refetchTickets } = useQuery({
     queryKey: ['admin-tickets'],
     queryFn: () => ticketsApi.getTickets({ page: 1, page_size: 10 }),
-    enabled: activeTab === 'tickets',
     refetchOnWindowFocus: true,
     refetchInterval: 10000 // Автоматический рефетч каждые 10 секунд
   })
@@ -80,21 +78,18 @@ const Admin: React.FC = () => {
   }
 
   const handleModelFormSuccess = () => {
-    console.info('[Admin] Model form success - invalidating queries and switching to models tab')
+    console.info('[Admin] Model form success - simple invalidation')
     
-    // Принудительно инвалидируем все связанные запросы
+    // ПРОСТОЕ решение: только инвалидируем кэш
     queryClient.invalidateQueries({ queryKey: ['admin-models'] })
     queryClient.invalidateQueries({ queryKey: ['models'] })
     queryClient.invalidateQueries({ queryKey: ['admin-stats'] })
     
-    // Переключаем на вкладку моделей для показа результата
+    // Переключаем на вкладку моделей
     setActiveTab('models')
     
-    // Дополнительно делаем рефетч через небольшую задержку
-    setTimeout(() => {
-      console.info('[Admin] Refetching models after success')
-      queryClient.refetchQueries({ queryKey: ['admin-models'] })
-    }, 500)
+    // БЕЗ дополнительных рефетчей - пусть React Query сам обновит
+    console.info('[Admin] Model form success completed')
   }
 
   // Проверка аутентификации
