@@ -15,24 +15,15 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware - более агрессивные настройки
+# CORS middleware - МАКСИМАЛЬНО агрессивные настройки для исправления проблем
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://gakshop.com",
-        "https://www.gakshop.com", 
-        "https://api.gakshop.com",
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "https://localhost:3000",
-        "https://localhost:5173",
-        "*"  # Временно разрешаем все домены для отладки
-    ],
+    allow_origins=["*"],  # Разрешаем ВСЕ домены
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Разрешаем ВСЕ методы
+    allow_headers=["*"],  # Разрешаем ВСЕ заголовки
     expose_headers=["*"],
-    max_age=600,
+    max_age=86400,  # Увеличиваем время кэширования
 )
 
 # ===== BASIC ENDPOINTS =====
@@ -45,8 +36,21 @@ async def options_handler(path: str):
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH"
     response.headers["Access-Control-Allow-Headers"] = "*"
-    response.headers["Access-Control-Max-Age"] = "600"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Expose-Headers"] = "*"
+    response.headers["Access-Control-Max-Age"] = "86400"
     return {"message": "OK"}
+
+@app.middleware("http")
+async def add_cors_headers(request, call_next):
+    """Добавляем CORS заголовки ко всем ответам"""
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Expose-Headers"] = "*"
+    return response
 
 @app.get("/")
 async def root():
