@@ -1,253 +1,83 @@
-import React, { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Send, Clock, CheckCircle, XCircle, User, Package } from 'lucide-react'
 import { ticketsApi } from '../services/api'
-import { useAuth } from '../contexts/AuthContext'
-import LoadingSpinner from '../components/LoadingSpinner'
 
-const TicketDetail: React.FC = () => {
+export default function TicketDetail() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const { user } = useAuth()
-  const queryClient = useQueryClient()
-  
   const [newMessage, setNewMessage] = useState('')
+  const queryClient = useQueryClient()
 
-  const { data: ticket, isLoading, error } = useQuery({
+  const { data: ticket } = useQuery({
     queryKey: ['ticket', id],
     queryFn: () => ticketsApi.getTicket(Number(id)),
-    enabled: !!id
+    enabled: !!id,
   })
 
-  const { data: messages, isLoading: messagesLoading } = useQuery({
-    queryKey: ['ticket-messages', id],
-    queryFn: () => ticketsApi.getTicketMessages(Number(id)),
-    enabled: !!id
+  const { data: messages } = useQuery({
+    queryKey: ['messages', id],
+    queryFn: () => ticketsApi.getMessages(Number(id)),
+    enabled: !!id,
   })
 
-  // Мутация для отправки сообщения
-  const sendMessageMutation = useMutation({
-    mutationFn: (data: { body: string }) => ticketsApi.createTicketMessage(Number(id), data),
+  const sendMutation = useMutation({
+    mutationFn: (message: string) => ticketsApi.sendMessage(Number(id), { body: message }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages', id] })
       setNewMessage('')
-      queryClient.invalidateQueries({ queryKey: ['ticket-messages', id] })
-    }
+    },
   })
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newMessage.trim()) return
-    
-    // Определяем, кто отправляет сообщение
-    // Если мы в админ панели - отправляем как администратор (user_id: 0)
-    // Иначе - как пользователь
-    const isAdmin = window.location.pathname.includes('/admin')
-    const messageData = {
-      body: newMessage.trim(),
-      user_id: isAdmin ? 0 : undefined // 0 = администратор, undefined = пользователь
-    }
-    
-    sendMessageMutation.mutate(messageData)
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'open':
-        return <Clock size={16} color="#1976d2" />
-      case 'in_progress':
-        return <Clock size={16} color="#f57c00" />
-      case 'resolved':
-        return <CheckCircle size={16} color="#388e3c" />
-      case 'closed':
-        return <XCircle size={16} color="#7b1fa2" />
-      default:
-        return <Clock size={16} />
-    }
-  }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'open':
-        return 'Открыт'
-      case 'in_progress':
-        return 'В работе'
-      case 'resolved':
-        return 'Решен'
-      case 'closed':
-        return 'Закрыт'
-      default:
-        return status
-    }
-  }
-
-  const getPriorityText = (priority: string) => {
-    switch (priority) {
-      case 'low':
-        return 'Низкий'
-      case 'normal':
-        return 'Обычный'
-      case 'high':
-        return 'Высокий'
-      default:
-        return priority
-    }
-  }
-
-  if (isLoading) return <LoadingSpinner message="Загрузка тикета..." />
-  if (error || !ticket) return <div className="error">Тикет не найден</div>
+  if (!ticket) return <div>Загрузка...</div>
 
   return (
-    <div className="container">
-      {/* Заголовок */}
-      <div className="card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-          <button 
-            className="btn btn-small btn-secondary"
-            onClick={() => navigate('/tickets')}
-          >
-            <ArrowLeft size={16} />
-            Назад
-          </button>
-          <h1>{ticket.subject}</h1>
-        </div>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-          {getStatusIcon(ticket.status)}
-          <span className={`status-badge status-${ticket.status.replace('_', '-')}`}>
-            {getStatusText(ticket.status)}
-          </span>
-          <span className={`status-badge priority-${ticket.priority}`}>
-            {getPriorityText(ticket.priority)}
-          </span>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-          <div>
-            <h4>Номер тикета</h4>
-            <p>#{ticket.id}</p>
-          </div>
-          <div>
-            <h4>Дата создания</h4>
-            <p>{new Date(ticket.created_at).toLocaleDateString('ru-RU')}</p>
-          </div>
-          {ticket.closed_at && (
-            <div>
-              <h4>Дата закрытия</h4>
-              <p>{new Date(ticket.closed_at).toLocaleDateString('ru-RU')}</p>
-            </div>
-          )}
-        </div>
+    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+      <div style={{ background: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '2rem' }}>
+        <h1 style={{ margin: '0 0 1rem 0' }}>{ticket.subject}</h1>
+        <p style={{ color: '#6b7280', margin: '0 0 1rem 0' }}>
+          Статус: {ticket.status} • Приоритет: {ticket.priority}
+        </p>
+        <p style={{ margin: 0 }}>{ticket.description}</p>
       </div>
 
-      {/* Информация о модели */}
-      {ticket.model && (
-        <div className="card">
-          <h3>Связанная модель</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', backgroundColor: 'var(--tg-theme-secondary-bg-color)', borderRadius: '8px' }}>
-            <Package size={20} color="#2481cc" />
-            <div>
-              <div style={{ fontWeight: '600' }}>{ticket.model.name}</div>
-              <div style={{ fontSize: '14px', color: 'var(--tg-theme-hint-color)' }}>
-                {ticket.model.brand && `${ticket.model.brand} • `}
-                {ticket.model.code}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Описание */}
-      <div className="card">
-        <h3>Описание проблемы</h3>
-        <p style={{ whiteSpace: 'pre-wrap' }}>{ticket.description}</p>
-      </div>
-
-      {/* Переписка */}
-      <div className="card">
-        <h3>Переписка</h3>
+      <div style={{ background: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <h2 style={{ margin: '0 0 1.5rem 0' }}>Сообщения</h2>
         
-        {messagesLoading ? (
-          <LoadingSpinner message="Загрузка сообщений..." />
-        ) : !messages || messages.length === 0 ? (
-          <div className="empty-state">
-            <p>Сообщений пока нет</p>
-          </div>
-        ) : (
-          <div style={{ marginBottom: '16px' }}>
-            {messages.map((message: any) => (
-              <div 
-                key={message.id} 
-                style={{ 
-                  marginBottom: '16px', 
-                  padding: '12px', 
-                  backgroundColor: message.user_id === user?.id ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-secondary-bg-color)',
-                  color: message.user_id === user?.id ? 'white' : 'var(--tg-theme-text-color)',
-                  borderRadius: '8px',
-                  marginLeft: message.user_id === user?.id ? '20%' : '0',
-                  marginRight: message.user_id === user?.id ? '0' : '20%'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <User size={14} />
-                    <span style={{ fontSize: '12px', fontWeight: '500' }}>
-                      {message.author?.full_name || 
-                       (message.user_id === 0 ? 'Администратор' : `Пользователь ${message.user_id}`)}
-                    </span>
-                    {message.is_internal_note && (
-                      <span style={{ fontSize: '10px', opacity: 0.8, fontStyle: 'italic' }}>
-                        (внутренняя заметка)
-                      </span>
-                    )}
-                  </div>
-                  <span style={{ fontSize: '12px', opacity: 0.8 }}>
-                    {new Date(message.created_at).toLocaleString('ru-RU')}
-                  </span>
-                </div>
-                <div style={{ whiteSpace: 'pre-wrap' }}>{message.message}</div>
+        <div style={{ marginBottom: '2rem', maxHeight: '400px', overflowY: 'auto' }}>
+          {messages?.map((message: any) => (
+            <div key={message.id} style={{ 
+              marginBottom: '1rem', 
+              padding: '1rem', 
+              background: '#f9fafb', 
+              borderRadius: '6px',
+              borderLeft: '4px solid #2563eb'
+            }}>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+                Пользователь {message.user_id} • {new Date(message.created_at).toLocaleString('ru-RU')}
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* Форма отправки сообщения */}
-        {(ticket.status === 'open' || ticket.status === 'new' || ticket.status === 'pending') && (
-          <form onSubmit={handleSendMessage}>
-            <div className="form-group">
-              <textarea
-                className="form-input form-textarea"
-                placeholder="Введите ваше сообщение..."
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                rows={3}
-              />
+              <div>{message.message}</div>
             </div>
+          ))}
+        </div>
+
+        <form onSubmit={(e) => { e.preventDefault(); if (newMessage.trim()) sendMutation.mutate(newMessage.trim()) }}>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <textarea
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Введите сообщение..."
+              style={{ flex: 1, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '6px', minHeight: '80px' }}
+            />
             <button
               type="submit"
-              className="btn"
-              disabled={sendMessageMutation.isPending || !newMessage.trim()}
+              disabled={sendMutation.isPending || !newMessage.trim()}
+              style={{ padding: '0.75rem 1.5rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', alignSelf: 'flex-end' }}
             >
-              {sendMessageMutation.isPending ? (
-                <LoadingSpinner message="Отправка..." />
-              ) : (
-                <>
-                  <Send size={16} />
-                  Отправить
-                </>
-              )}
+              {sendMutation.isPending ? 'Отправка...' : 'Отправить'}
             </button>
-          </form>
-        )}
-
-        {(ticket.status === 'closed' || ticket.status === 'resolved') && (
-          <div style={{ padding: '16px', backgroundColor: 'var(--tg-theme-secondary-bg-color)', borderRadius: '8px', textAlign: 'center' }}>
-            <p>Тикет закрыт. Новые сообщения отправлять нельзя.</p>
           </div>
-        )}
+        </form>
       </div>
     </div>
   )
 }
-
-export default TicketDetail

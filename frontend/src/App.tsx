@@ -1,35 +1,42 @@
-import { Routes, Route } from 'react-router-dom'
-import { TelegramProvider } from './contexts/TelegramContext'
-import { AuthProvider } from './contexts/AuthContext'
-import Layout from './components/Layout'
-import Home from './pages/Home'
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Models from './pages/Models'
-import ModelDetail from './pages/ModelDetail'
-import Tickets from './pages/Tickets'
-import TicketDetail from './pages/TicketDetail'
-import CreateTicket from './pages/CreateTicket'
 import Admin from './pages/Admin'
-import NotFound from './pages/NotFound'
+import TicketDetail from './pages/TicketDetail'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5000,
+    },
+  },
+})
 
 function App() {
   return (
-    <TelegramProvider>
-      <AuthProvider>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/models" element={<Models />} />
-            <Route path="/models/:id" element={<ModelDetail />} />
-            <Route path="/tickets" element={<Tickets />} />
-            <Route path="/tickets/:id" element={<TicketDetail />} />
-            <Route path="/tickets/create" element={<CreateTicket />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/admin/tickets/:id" element={<TicketDetail />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Layout>
-      </AuthProvider>
-    </TelegramProvider>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
+          <nav style={{ background: '#2563eb', color: 'white', padding: '1rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <h1 style={{ margin: 0, fontSize: '1.5rem' }}>Simple App</h1>
+              <Link to="/" style={{ color: 'white', textDecoration: 'none' }}>Модели</Link>
+              <Link to="/admin" style={{ color: 'white', textDecoration: 'none' }}>Админ</Link>
+            </div>
+          </nav>
+          
+          <main style={{ padding: '2rem' }}>
+            <Routes>
+              <Route path="/" element={<Models />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/tickets/:id" element={<TicketDetail />} />
+            </Routes>
+          </main>
+        </div>
+      </Router>
+    </QueryClientProvider>
   )
 }
 

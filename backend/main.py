@@ -1,19 +1,10 @@
-"""
-Простая рабочая версия API без сложных зависимостей
-"""
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import os
+import time
 
-# Создаем приложение
-app = FastAPI(
-    title="Telegram Mini App API",
-    description="API для Telegram Mini App с каталогом моделей и поддержкой",
-    version="1.0.0"
-)
+app = FastAPI(title="Simple Working API")
 
-# CORS middleware
+# ПРОСТОЙ CORS - разрешаем всё
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,270 +13,154 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ===== BASIC ENDPOINTS =====
+# ПРОСТОЕ хранилище - будет сбрасываться, но работать стабильно
+models = [
+    {"id": 1, "name": "Test Model 1", "description": "Test", "category": "test", "brand": "Test", "code": "T1", "is_active": True, "created_at": "2024-01-01T00:00:00Z"},
+    {"id": 2, "name": "Test Model 2", "description": "Test", "category": "test", "brand": "Test", "code": "T2", "is_active": True, "created_at": "2024-01-01T00:00:00Z"},
+    {"id": 3, "name": "Test Model 3", "description": "Test", "category": "test", "brand": "Test", "code": "T3", "is_active": True, "created_at": "2024-01-01T00:00:00Z"},
+]
 
-@app.options("/{path:path}")
-async def options_handler(path: str):
-    """Обработчик OPTIONS запросов для CORS"""
-    return {"message": "OK"}
+files = [
+    {"id": 1, "model_id": 1, "filename": "test.pdf", "file_size": 1024, "mime_type": "application/pdf", "comment": "", "created_at": "2024-01-01T00:00:00Z"},
+]
 
+tickets = [
+    {"id": 1, "subject": "Test Ticket", "description": "Test", "status": "open", "priority": "normal", "user_id": 1, "model_id": 1, "created_at": "2024-01-01T00:00:00Z"},
+]
+
+messages = [
+    {"id": 1, "ticket_id": 1, "user_id": 1, "message": "Test message", "created_at": "2024-01-01T00:00:00Z"},
+]
+
+# ПРОСТЫЕ ENDPOINTS
 @app.get("/")
-async def root():
-    """Корневой endpoint"""
-    return {
-        "message": "Telegram Mini App API - Simple Working Version",
-        "version": "1.0.0",
-        "status": "running",
-        "environment": "production",
-        "debug": "false"
-    }
+def root():
+    return {"message": "Simple API works"}
 
-@app.get("/health")
-async def health_check():
-    """Проверка здоровья API"""
-    return {
-        "status": "healthy",
-        "timestamp": "2024-01-01T00:00:00Z",
-        "version": "1.0.0"
-    }
+@app.get("/api/v1/models")
+def get_models():
+    return {"models": models}
 
-@app.get("/test")
-async def test_endpoint():
-    """Тестовый endpoint для проверки работы API"""
-    return {
-        "message": "API is working!",
-        "cors_origins": ["*"],
-        "has_database": False,
-        "database_url_configured": bool(os.getenv("DATABASE_URL")),
-        "database_url_from_env": os.getenv("DATABASE_URL", "NOT_SET")[:50] + "..." if os.getenv("DATABASE_URL") else "NOT_SET"
-    }
-
-# ===== AUTH ENDPOINTS =====
-
-@app.post("/api/v1/auth/verify")
-@app.options("/api/v1/auth/verify")
-async def verify_auth():
-    """Проверка аутентификации через Telegram"""
-    return {
-        "token": {
-            "access_token": "test_token_12345",
-            "token_type": "bearer"
-        },
-        "user": {
-            "id": 1,
-            "telegram_user_id": 123456789,
-            "username": "test_user",
-            "first_name": "Test",
-            "last_name": "User",
-            "language_code": "ru",
-            "role": "user",
-            "is_blocked": False,
-            "full_name": "Test User",
-            "is_admin": False
-        }
-    }
-
-@app.get("/api/v1/auth/me")
-async def get_current_user():
-    """Получить текущего пользователя"""
-    return {
-        "id": 1,
-        "telegram_user_id": 123456789,
-        "first_name": "Test",
-        "last_name": "User",
-        "username": "testuser",
+@app.post("/api/v1/models")
+def create_model(data: dict):
+    new_id = max([m["id"] for m in models], default=0) + 1
+    new_model = {
+        "id": new_id,
+        "name": data.get("name", "New Model"),
+        "description": data.get("description", ""),
+        "category": data.get("category", ""),
+        "brand": data.get("brand", ""),
+        "code": data.get("code", f"M{new_id}"),
         "is_active": True,
         "created_at": "2024-01-01T00:00:00Z"
     }
-
-# ===== MODELS ENDPOINTS =====
-
-@app.get("/api/v1/models")
-async def get_models():
-    """Получить список моделей"""
-    return {
-        "models": [
-            {
-                "id": 1,
-                "name": "Test Model 1",
-                "description": "Test model for demo purposes",
-                "category": "test",
-                "created_at": "2024-01-01T00:00:00Z",
-                "updated_at": "2024-01-01T00:00:00Z"
-            }
-        ]
-    }
-
-@app.post("/api/v1/models")
-async def create_model(model_data: dict):
-    """Создать новую модель"""
-    return {
-        "id": 2,
-        "name": model_data.get("name", "New Model"),
-        "description": model_data.get("description", ""),
-        "category": model_data.get("category", "general"),
-        "created_at": "2024-01-01T00:00:00Z",
-        "updated_at": "2024-01-01T00:00:00Z"
-    }
+    models.append(new_model)
+    return new_model
 
 @app.get("/api/v1/models/{model_id}")
-async def get_model(model_id: int):
-    """Получить модель по ID"""
-    return {
-        "id": model_id,
-        "name": f"Model {model_id}",
-        "description": f"Description for model {model_id}",
-        "category": "test",
-        "created_at": "2024-01-01T00:00:00Z",
-        "updated_at": "2024-01-01T00:00:00Z",
-        "files": []
-    }
+def get_model(model_id: int):
+    for model in models:
+        if model["id"] == model_id:
+            return model
+    raise HTTPException(404, "Model not found")
 
 @app.put("/api/v1/models/{model_id}")
-async def update_model(model_id: int, model_data: dict):
-    """Обновить модель"""
-    return {
-        "id": model_id,
-        "name": model_data.get("name", f"Updated Model {model_id}"),
-        "description": model_data.get("description", ""),
-        "category": model_data.get("category", "general"),
-        "created_at": "2024-01-01T00:00:00Z",
-        "updated_at": "2024-01-01T00:00:00Z"
-    }
+def update_model(model_id: int, data: dict):
+    for i, model in enumerate(models):
+        if model["id"] == model_id:
+            models[i].update({
+                "name": data.get("name", model["name"]),
+                "description": data.get("description", model["description"]),
+                "category": data.get("category", model["category"]),
+                "brand": data.get("brand", model["brand"]),
+                "code": data.get("code", model["code"]),
+            })
+            return models[i]
+    raise HTTPException(404, "Model not found")
 
 @app.delete("/api/v1/models/{model_id}")
-async def delete_model(model_id: int):
-    """Удалить модель"""
-    return {"message": "Model deleted successfully"}
-
-# ===== TICKETS ENDPOINTS =====
-
-@app.get("/api/v1/tickets")
-async def get_tickets():
-    """Получить список тикетов"""
-    return {
-        "tickets": [
-            {
-                "id": 1,
-                "subject": "Test Ticket",
-                "description": "This is a test ticket",
-                "status": "open",
-                "priority": "normal",
-                "created_at": "2024-01-01T00:00:00Z",
-                "updated_at": "2024-01-01T00:00:00Z"
-            }
-        ]
-    }
-
-@app.post("/api/v1/tickets")
-async def create_ticket(ticket_data: dict):
-    """Создать новый тикет"""
-    return {
-        "id": 2,
-        "subject": ticket_data.get("subject", "New Ticket"),
-        "description": ticket_data.get("description", ""),
-        "status": "open",
-        "priority": "normal",
-        "created_at": "2024-01-01T00:00:00Z",
-        "updated_at": "2024-01-01T00:00:00Z"
-    }
-
-@app.get("/api/v1/tickets/{ticket_id}")
-async def get_ticket(ticket_id: int):
-    """Получить тикет по ID"""
-    return {
-        "id": ticket_id,
-        "subject": f"Ticket {ticket_id}",
-        "description": f"Description for ticket {ticket_id}",
-        "status": "open",
-        "priority": "normal",
-        "created_at": "2024-01-01T00:00:00Z",
-        "updated_at": "2024-01-01T00:00:00Z"
-    }
-
-@app.get("/api/v1/tickets/{ticket_id}/messages")
-async def get_ticket_messages(ticket_id: int):
-    """Получить сообщения тикета"""
-    return [
-        {
-            "id": 1,
-            "ticket_id": ticket_id,
-            "user_id": 1,
-            "message": "Test message",
-            "created_at": "2024-01-01T00:00:00Z"
-        }
-    ]
-
-@app.post("/api/v1/tickets/{ticket_id}/messages")
-async def create_ticket_message(ticket_id: int, message_data: dict):
-    """Создать сообщение в тикете"""
-    return {
-        "id": 2,
-        "ticket_id": ticket_id,
-        "user_id": message_data.get("user_id", 1),
-        "message": message_data.get("body", message_data.get("message", "")),
-        "created_at": "2024-01-01T00:00:00Z"
-    }
-
-# ===== ADMIN ENDPOINTS =====
-
-@app.get("/api/v1/admin/stats")
-async def get_admin_stats():
-    """Получить статистику для админ панели"""
-    return {
-        "total_models": 1,
-        "total_tickets": 1,
-        "open_tickets": 1,
-        "total_users": 1,
-        "total_downloads": 0
-    }
-
-# ===== FILE ENDPOINTS =====
+def delete_model(model_id: int):
+    for i, model in enumerate(models):
+        if model["id"] == model_id:
+            models.pop(i)
+            return {"message": "Deleted"}
+    raise HTTPException(404, "Model not found")
 
 @app.get("/api/v1/models/{model_id}/files")
-async def get_model_files(model_id: int):
-    """Получить список файлов модели"""
-    return [
-        {
-            "id": 1,
-            "filename": "test.pdf",
-            "filepath": "/uploads/test.pdf",
-            "file_size": 1024,
-            "mime_type": "application/pdf",
-            "comment": "",
-            "created_at": "2024-01-01T00:00:00Z",
-            "url": "https://api.gakshop.com/uploads/test.pdf"
-        }
-    ]
+def get_model_files(model_id: int):
+    return [f for f in files if f["model_id"] == model_id]
 
 @app.post("/api/v1/models/{model_id}/files")
-async def upload_model_file(model_id: int, file_data: dict):
-    """Загрузить файл для модели"""
+def upload_file(model_id: int, data: dict):
+    new_id = max([f["id"] for f in files], default=0) + 1
+    new_file = {
+        "id": new_id,
+        "model_id": model_id,
+        "filename": data.get("filename", "file.pdf"),
+        "file_size": data.get("file_size", 1024),
+        "mime_type": data.get("mime_type", "application/pdf"),
+        "comment": data.get("comment", ""),
+        "created_at": "2024-01-01T00:00:00Z"
+    }
+    files.append(new_file)
+    return new_file
+
+@app.get("/api/v1/tickets")
+def get_tickets():
+    return {"tickets": tickets}
+
+@app.post("/api/v1/tickets")
+def create_ticket(data: dict):
+    new_id = max([t["id"] for t in tickets], default=0) + 1
+    new_ticket = {
+        "id": new_id,
+        "subject": data.get("subject", "New Ticket"),
+        "description": data.get("description", ""),
+        "status": "open",
+        "priority": "normal",
+        "user_id": data.get("user_id", 1),
+        "model_id": data.get("model_id"),
+        "created_at": "2024-01-01T00:00:00Z"
+    }
+    tickets.append(new_ticket)
+    return new_ticket
+
+@app.get("/api/v1/tickets/{ticket_id}")
+def get_ticket(ticket_id: int):
+    for ticket in tickets:
+        if ticket["id"] == ticket_id:
+            return ticket
+    raise HTTPException(404, "Ticket not found")
+
+@app.get("/api/v1/tickets/{ticket_id}/messages")
+def get_messages(ticket_id: int):
+    return [m for m in messages if m["ticket_id"] == ticket_id]
+
+@app.post("/api/v1/tickets/{ticket_id}/messages")
+def create_message(ticket_id: int, data: dict):
+    new_id = max([m["id"] for m in messages], default=0) + 1
+    new_message = {
+        "id": new_id,
+        "ticket_id": ticket_id,
+        "user_id": data.get("user_id", 1),
+        "message": data.get("body", data.get("message", "")),
+        "created_at": "2024-01-01T00:00:00Z"
+    }
+    messages.append(new_message)
+    return new_message
+
+@app.get("/api/v1/admin/stats")
+def get_stats():
     return {
-        "id": 2,
-        "filename": "uploaded.pdf",
-        "filepath": "/uploads/uploaded.pdf",
-        "file_size": 2048,
-        "mime_type": "application/pdf",
-        "comment": "",
-        "created_at": "2024-01-01T00:00:00Z",
-        "url": "https://api.gakshop.com/uploads/uploaded.pdf"
+        "models_count": len(models),
+        "tickets_count": len(tickets),
+        "files_count": len(files),
+        "users_count": 1
     }
 
-@app.delete("/api/v1/models/{model_id}/files/{file_id}")
-async def delete_model_file(model_id: int, file_id: int):
-    """Удалить файл модели"""
-    return {"message": "File deleted successfully"}
-
-@app.get("/api/v1/files/{file_id}/download")
-async def download_file(file_id: int):
-    """Скачать файл по ID"""
-    return {
-        "id": file_id,
-        "filename": "test.pdf",
-        "url": "https://api.gakshop.com/uploads/test.pdf",
-        "mime_type": "application/pdf"
-    }
+@app.post("/api/v1/auth/verify")
+def verify_auth():
+    return {"valid": True, "user": {"id": 1, "name": "Test User"}}
 
 if __name__ == "__main__":
     import uvicorn

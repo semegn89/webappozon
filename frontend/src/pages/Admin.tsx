@@ -1,514 +1,178 @@
-import React, { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
-import { 
-  Users, Package, Ticket, BarChart3, Plus, 
-  TrendingUp, Eye, Download, MessageSquare, Calendar,
-  CheckCircle, Edit, Trash2, Upload, Lock, FileText
-} from 'lucide-react'
-import { adminApi, modelsApi, ticketsApi } from '../services/api'
-import LoadingSpinner from '../components/LoadingSpinner'
-import ModelForm from '../components/ModelForm'
+import { modelsApi, adminApi } from '../services/api'
 
-const Admin: React.FC = () => {
-  const navigate = useNavigate()
+export default function Admin() {
+  const [showForm, setShowForm] = useState(false)
+  const [formData, setFormData] = useState({ name: '', description: '', category: '', brand: '', code: '' })
   const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'models' | 'tickets'>('dashboard')
-  const [isModelFormOpen, setIsModelFormOpen] = useState(false)
-  const [editingModel, setEditingModel] = useState<any>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [password, setPassword] = useState('')
 
-  // Получаем статистику
-  const { data: statsData, isLoading: statsLoading } = useQuery({
-    queryKey: ['admin-stats'],
-    queryFn: adminApi.getAdminStats
+  const { data: modelsData, isLoading } = useQuery({
+    queryKey: ['models'],
+    queryFn: modelsApi.getModels,
   })
 
-  // Получаем модели
-  const { data: modelsData } = useQuery({
-    queryKey: ['admin-models'],
-    queryFn: () => modelsApi.getModels({ page: 1, page_size: 10 }),
-    enabled: activeTab === 'models'
+  const { data: stats } = useQuery({
+    queryKey: ['stats'],
+    queryFn: adminApi.getStats,
   })
 
-  // Получаем тикеты
-  const { data: ticketsData } = useQuery({
-    queryKey: ['admin-tickets'],
-    queryFn: () => ticketsApi.getTickets({ page: 1, page_size: 10 }),
-    enabled: activeTab === 'tickets'
+  const createMutation = useMutation({
+    mutationFn: modelsApi.createModel,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['models'] })
+      queryClient.invalidateQueries({ queryKey: ['stats'] })
+      setShowForm(false)
+      setFormData({ name: '', description: '', category: '', brand: '', code: '' })
+    },
   })
 
-
-  // Мутация для удаления модели
-  const deleteModelMutation = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: modelsApi.deleteModel,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-models'] })
       queryClient.invalidateQueries({ queryKey: ['models'] })
-    }
+      queryClient.invalidateQueries({ queryKey: ['stats'] })
+    },
   })
 
-  const tabs = [
-    { id: 'dashboard', label: 'Дашборд', icon: BarChart3, color: '#3b82f6' },
-    { id: 'models', label: 'Модели', icon: Package, color: '#10b981' },
-    { id: 'tickets', label: 'Тикеты', icon: Ticket, color: '#f59e0b' }
-  ]
+  const models = modelsData?.models || []
 
-  // Функции для работы с моделями
-  const handleCreateModel = () => {
-    setEditingModel(null)
-    setIsModelFormOpen(true)
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.name.trim()) return
+    createMutation.mutate(formData)
   }
 
-  const handleEditModel = (model: any) => {
-    setEditingModel(model)
-    setIsModelFormOpen(true)
-  }
-
-  const handleDeleteModel = async (modelId: number) => {
-    if (window.confirm('Вы уверены, что хотите удалить эту модель?')) {
-      await deleteModelMutation.mutateAsync(modelId)
+  const handleDelete = (id: number) => {
+    if (confirm('Удалить модель?')) {
+      deleteMutation.mutate(id)
     }
   }
-
-  const handleModelFormSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['admin-models'] })
-    queryClient.invalidateQueries({ queryKey: ['models'] })
-    setActiveTab('models') // переключаем на вкладку моделей
-  }
-
-  // Проверка аутентификации
-  useEffect(() => {
-    const adminAuth = localStorage.getItem('admin_auth')
-    if (adminAuth === 'true') {
-      setIsAuthenticated(true)
-    }
-  }, [])
-
-  const handleLogin = () => {
-    // Простая защита паролем
-    if (password === 'admin123') {
-      setIsAuthenticated(true)
-      localStorage.setItem('admin_auth', 'true')
-    } else {
-      alert('Неверный пароль!')
-    }
-  }
-
-  const handleLogout = () => {
-    setIsAuthenticated(false)
-    localStorage.removeItem('admin_auth')
-  }
-
-  const handleFileUpload = () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = '.pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.xlsx,.txt'
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0]
-      if (!file) return
-
-      try {
-        const formData = new FormData()
-        formData.append('file', file)
-        
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/files`, {
-          method: 'POST',
-          body: formData
-        })
-        
-        if (response.ok) {
-          const result = await response.json()
-          alert(`Файл "${file.name}" успешно загружен!`)
-          console.log('Uploaded file:', result)
-        } else {
-          const error = await response.json()
-          alert(`Ошибка загрузки: ${error.detail || 'Неизвестная ошибка'}`)
-        }
-      } catch (error) {
-        console.error('Upload error:', error)
-        alert('Ошибка загрузки файла')
-      }
-    }
-    input.click()
-  }
-
-  // Если не аутентифицирован, показываем форму входа
-  if (!isAuthenticated) {
-    return (
-      <div className="admin-login">
-        <div className="login-card">
-          <div className="login-header">
-            <Lock size={48} color="#3b82f6" />
-            <h1>Админ Панель</h1>
-            <p>Введите пароль для доступа</p>
-          </div>
-          <div className="login-form">
-            <input
-              type="password"
-              placeholder="Пароль"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-              className="login-input"
-            />
-            <button onClick={handleLogin} className="login-btn">
-              Войти
-            </button>
-          </div>
-          <button onClick={() => navigate('/')} className="back-btn">
-            ← Вернуться в приложение
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  if (statsLoading) return <LoadingSpinner message="Загрузка админ-панели..." />
-
-  // Статистические карточки
-  const StatCard = ({ title, value, icon: Icon, color, trend }: any) => (
-    <div className="admin-stat-card">
-      <div className="stat-card-content">
-        <div className="stat-card-info">
-          <p className="stat-card-title">{title}</p>
-          <p className="stat-card-value">{value}</p>
-          {trend && (
-            <div className="stat-card-trend">
-              <TrendingUp className="trend-icon" />
-              <span className="trend-text">{trend}</span>
-            </div>
-          )}
-        </div>
-        <div className="stat-card-icon" style={{ backgroundColor: color }}>
-          <Icon size={24} color="white" />
-        </div>
-      </div>
-    </div>
-  )
-
-  // Карточка модели
-  const ModelCard = ({ model }: any) => (
-    <div className="admin-card model-card">
-      <div className="model-card-header">
-        <div className="model-card-info">
-          <div className="model-icon">
-            <Package size={20} color="#3b82f6" />
-          </div>
-          <div>
-            <h3 className="model-title">{model.name}</h3>
-            <p className="model-category">{model.category} {model.brand && `• ${model.brand}`}</p>
-          </div>
-        </div>
-        <div className="model-actions">
-          <button 
-            className="action-btn edit-btn"
-            onClick={() => handleEditModel(model)}
-            title="Редактировать"
-          >
-            <Edit size={16} />
-          </button>
-          <button 
-            className="action-btn delete-btn"
-            onClick={() => handleDeleteModel(model.id)}
-            title="Удалить"
-            disabled={deleteModelMutation.isPending}
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
-      </div>
-      <p className="model-description">{model.description || 'Описание не указано'}</p>
-      <div className="model-footer">
-        <div className="model-stats">
-          <div className="model-stat">
-            <Eye size={16} />
-            <span>0 просмотров</span>
-          </div>
-          <div className="model-stat">
-            <Download size={16} />
-            <span>0 загрузок</span>
-          </div>
-        </div>
-        <span className={`status-badge ${model.is_active ? 'status-active' : 'status-blocked'}`}>
-          {model.is_active ? 'Активна' : 'Неактивна'}
-        </span>
-      </div>
-    </div>
-  )
-
-  // Карточка тикета
-  const TicketCard = ({ ticket }: any) => {
-    const handleTicketClick = () => {
-      // Открываем тикет в админ режиме в новой вкладке
-      window.open(`/admin/tickets/${ticket.id}`, '_blank')
-    }
-
-    return (
-      <div className="admin-card ticket-card" onClick={handleTicketClick} style={{ cursor: 'pointer' }}>
-        <div className="ticket-card-header">
-          <div className="ticket-card-info">
-            <div className={`ticket-icon ${ticket.status}`}>
-              <Ticket size={20} />
-            </div>
-            <div>
-              <h3 className="ticket-title">{ticket.subject}</h3>
-              <p className="ticket-priority">Приоритет: {ticket.priority}</p>
-            </div>
-          </div>
-          <div className="ticket-actions">
-            <button className="action-btn message-btn" onClick={(e) => { e.stopPropagation(); handleTicketClick(); }}>
-              <MessageSquare size={16} />
-            </button>
-            <button className="action-btn check-btn" onClick={(e) => e.stopPropagation()}>
-              <CheckCircle size={16} />
-            </button>
-          </div>
-        </div>
-        <p className="ticket-description">{ticket.description}</p>
-        <div className="ticket-footer">
-          <div className="ticket-date">
-            <Calendar size={16} />
-            <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
-          </div>
-          <span className={`status-badge status-${ticket.status}`}>
-            {ticket.status === 'open' && 'Открыт'}
-            {ticket.status === 'in_progress' && 'В работе'}
-            {ticket.status === 'resolved' && 'Решен'}
-            {ticket.status === 'closed' && 'Закрыт'}
-          </span>
-        </div>
-      </div>
-    )
-  }
-
 
   return (
-    <div className="admin-container">
-      {/* Header */}
-      <div className="admin-header">
-        <div className="admin-header-content">
-          <h1 className="admin-title">Админ Кабинет</h1>
-          <p className="admin-subtitle">Управление системой и контентом</p>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button 
-              className="back-btn"
-              onClick={() => navigate('/')}
-            >
-              ← Вернуться в приложение
-            </button>
-            <button 
-              className="logout-btn"
-              onClick={handleLogout}
-            >
-              Выйти
-            </button>
-          </div>
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h1>Админ-панель</h1>
+        <button 
+          onClick={() => setShowForm(!showForm)}
+          style={{ padding: '0.75rem 1.5rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px' }}
+        >
+          {showForm ? 'Отмена' : 'Создать модель'}
+        </button>
+      </div>
+
+      {/* Статистика */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ margin: '0 0 0.5rem 0', color: '#1f2937' }}>Модели</h3>
+          <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#2563eb' }}>{stats?.models_count || 0}</p>
+        </div>
+        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ margin: '0 0 0.5rem 0', color: '#1f2937' }}>Тикеты</h3>
+          <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#f59e0b' }}>{stats?.tickets_count || 0}</p>
+        </div>
+        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ margin: '0 0 0.5rem 0', color: '#1f2937' }}>Файлы</h3>
+          <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#10b981' }}>{stats?.files_count || 0}</p>
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="admin-tabs">
-        {tabs.map((tab) => {
-          const Icon = tab.icon
-          return (
-            <button
-              key={tab.id}
-              className={`admin-tab ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id as any)}
+      {/* Форма создания */}
+      {showForm && (
+        <div style={{ background: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '2rem' }}>
+          <h2 style={{ margin: '0 0 1.5rem 0' }}>Создать модель</h2>
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <input
+                type="text"
+                placeholder="Название"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                style={{ padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '6px' }}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Код"
+                value={formData.code}
+                onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
+                style={{ padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '6px' }}
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <input
+                type="text"
+                placeholder="Бренд"
+                value={formData.brand}
+                onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
+                style={{ padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '6px' }}
+              />
+              <input
+                type="text"
+                placeholder="Категория"
+                value={formData.category}
+                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                style={{ padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '6px' }}
+              />
+            </div>
+            <textarea
+              placeholder="Описание"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '6px', marginBottom: '1rem', minHeight: '100px' }}
+            />
+            <button 
+              type="submit" 
+              disabled={createMutation.isPending}
+              style={{ padding: '0.75rem 1.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px' }}
             >
-              <Icon size={20} color={activeTab === tab.id ? 'white' : tab.color} />
-              <span>{tab.label}</span>
+              {createMutation.isPending ? 'Создание...' : 'Создать'}
             </button>
-          )
-        })}
+          </form>
+        </div>
+      )}
+
+      {/* Список моделей */}
+      <div style={{ background: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <h2 style={{ margin: '0 0 1.5rem 0' }}>Модели ({models.length})</h2>
+        
+        {isLoading ? (
+          <div>Загрузка...</div>
+        ) : (
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            {models.map((model: any) => (
+              <div key={model.id} style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                padding: '1rem',
+                border: '1px solid #e5e7eb',
+                borderRadius: '6px'
+              }}>
+                <div>
+                  <h3 style={{ margin: '0 0 0.25rem 0' }}>{model.name}</h3>
+                  <p style={{ margin: 0, color: '#6b7280', fontSize: '0.875rem' }}>
+                    ID: {model.id} • {model.brand} • {model.category} • {model.code}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleDelete(model.id)}
+                  disabled={deleteMutation.isPending}
+                  style={{ padding: '0.5rem 1rem', background: '#dc2626', color: 'white', border: 'none', borderRadius: '4px' }}
+                >
+                  Удалить
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {models.length === 0 && !isLoading && (
+          <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+            <p>Модели не найдены</p>
+          </div>
+        )}
       </div>
-
-      {/* Content */}
-      <div className="admin-content">
-        {activeTab === 'dashboard' && (
-          <div className="dashboard-content">
-            {/* Stats */}
-            <div className="stats-grid">
-              <StatCard
-                title="Всего моделей"
-                value={statsData?.total_models || 0}
-                icon={Package}
-                color="#3b82f6"
-                trend="+12%"
-              />
-              <StatCard
-                title="Активных тикетов"
-                value={statsData?.active_tickets || 0}
-                icon={Ticket}
-                color="#f59e0b"
-                trend="+5%"
-              />
-              <StatCard
-                title="Всего тикетов"
-                value={statsData?.total_tickets || 0}
-                icon={MessageSquare}
-                color="#6366f1"
-                trend="+3%"
-              />
-              <StatCard
-                title="Всего файлов"
-                value={statsData?.total_files || 0}
-                icon={FileText}
-                color="#8b5cf6"
-                trend="+8%"
-              />
-              <StatCard
-                title="Загрузок"
-                value={statsData?.total_downloads || 0}
-                icon={Download}
-                color="#10b981"
-                trend="+15%"
-              />
-            </div>
-
-            {/* Quick Actions */}
-            <div className="quick-actions-section">
-              <h2 className="section-title">Быстрые действия</h2>
-              <div className="quick-actions-grid">
-                <button className="quick-action-btn" onClick={handleCreateModel}>
-                  <Plus size={24} color="white" />
-                  <div>
-                    <h3>Добавить модель</h3>
-                    <p>Создать новую модель</p>
-                  </div>
-                </button>
-                <button className="quick-action-btn" onClick={handleFileUpload}>
-                  <Upload size={24} color="white" />
-                  <div>
-                    <h3>Загрузить файл</h3>
-                    <p>Добавить инструкцию</p>
-                  </div>
-                </button>
-                <button className="quick-action-btn" onClick={() => setActiveTab('dashboard')}>
-                  <BarChart3 size={24} color="white" />
-                  <div>
-                    <h3>Аналитика</h3>
-                    <p>Посмотреть статистику</p>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Recent Activity */}
-            <div className="recent-activity-section">
-              <h2 className="section-title">Последние активности</h2>
-              <div className="activity-list">
-                <div className="activity-item">
-                  <div className="activity-icon">
-                    <Package size={16} color="#3b82f6" />
-                  </div>
-                  <div className="activity-content">
-                    <p className="activity-text">Добавлена новая модель "Sample Model"</p>
-                    <p className="activity-time">2 часа назад</p>
-                  </div>
-                </div>
-                <div className="activity-item">
-                  <div className="activity-icon">
-                    <Ticket size={16} color="#f59e0b" />
-                  </div>
-                  <div className="activity-content">
-                    <p className="activity-text">Создан новый тикет поддержки</p>
-                    <p className="activity-time">4 часа назад</p>
-                  </div>
-                </div>
-                <div className="activity-item">
-                  <div className="activity-icon">
-                    <Users size={16} color="#8b5cf6" />
-                  </div>
-                  <div className="activity-content">
-                    <p className="activity-text">Новый пользователь зарегистрирован</p>
-                    <p className="activity-time">6 часов назад</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'models' && (
-          <div className="models-content">
-            <div className="content-header">
-              <h2 className="section-title">Управление моделями</h2>
-              <button className="admin-button" onClick={handleCreateModel}>
-                <Plus size={20} />
-                Добавить модель
-              </button>
-            </div>
-            <div className="models-grid">
-              {(() => {
-                // Универсальная распаковка ответа API для моделей
-                const adminModelsRaw = modelsData as any
-                const adminModels: any[] =
-                  (adminModelsRaw?.items ?? adminModelsRaw?.models ?? (Array.isArray(adminModelsRaw) ? adminModelsRaw : [])) as any[]
-                
-                return adminModels.length > 0 ? (
-                  adminModels.map((model: any) => (
-                    <ModelCard key={model.id} model={model} />
-                  ))
-                ) : (
-                  <div className="empty-state">
-                    <Package size={48} color="#9ca3af" />
-                    <h3>Модели не найдены</h3>
-                    <p>Добавьте первую модель</p>
-                  </div>
-                )
-              })()}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'tickets' && (
-          <div className="tickets-content">
-            <div className="content-header">
-              <h2 className="section-title">Управление тикетами</h2>
-              <div className="ticket-filters">
-                <button className="filter-btn active">Все</button>
-                <button className="filter-btn">Открытые</button>
-                <button className="filter-btn">В работе</button>
-                <button className="filter-btn">Закрытые</button>
-              </div>
-            </div>
-            <div className="tickets-list">
-              {(() => {
-                // Универсальная распаковка ответа API для тикетов
-                const ticketsRaw = ticketsData as any
-                const tickets: any[] =
-                  (ticketsRaw?.items ?? ticketsRaw?.tickets ?? (Array.isArray(ticketsRaw) ? ticketsRaw : [])) as any[]
-                
-                return tickets.length > 0 ? (
-                  tickets.map((ticket: any) => (
-                    <TicketCard key={ticket.id} ticket={ticket} />
-                  ))
-                ) : (
-                  <div className="empty-state">
-                    <Ticket size={48} color="#9ca3af" />
-                    <h3>Тикеты не найдены</h3>
-                    <p>Пока нет тикетов поддержки</p>
-                  </div>
-                )
-              })()}
-            </div>
-          </div>
-        )}
-
-      </div>
-
-      {/* Модальное окно для создания/редактирования модели */}
-      <ModelForm
-        isOpen={isModelFormOpen}
-        onClose={() => setIsModelFormOpen(false)}
-        onSuccess={handleModelFormSuccess}
-        model={editingModel}
-      />
     </div>
   )
 }
-
-export default Admin
